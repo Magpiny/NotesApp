@@ -1,0 +1,282 @@
+package com.example.notesapp.presentation.home
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.notesapp.core.dimensions
+import com.example.notesapp.core.formatToReadableDate
+import com.example.notesapp.core.parseMarkdown
+import com.example.notesapp.core.shareNote
+import com.example.notesapp.domain.model.Note
+
+import androidx.compose.ui.res.stringResource
+import com.example.notesapp.R
+
+/**
+ * Main Home Screen displaying active notes.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun HomeScreen(
+    onNavigateToEditor: (String?) -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(viewModel.events) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is HomeUiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.home)) },
+                actions = {
+                    IconButton(onClick = viewModel::toggleLayout) {
+                        Icon(
+                            imageVector = if (state.isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                            contentDescription = stringResource(R.string.default_view)
+                        )
+                    }
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { onNavigateToEditor(null) }) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_note))
+            }
+        }
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
+            if (state.labels.isNotEmpty()) {
+                LabelFilter(
+                    labels = state.labels,
+                    selectedLabel = state.selectedLabel,
+                    onLabelSelected = viewModel::onLabelSelected
+                )
+            }
+
+            if (state.isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (state.error != null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("${stringResource(id = R.string.back)}: ${state.error}")
+                }
+            } else {
+                if (state.isGridView) {
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(2),
+                        contentPadding = PaddingValues(MaterialTheme.dimensions.paddingMedium),
+                        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.dimensions.paddingSmall),
+                        verticalItemSpacing = MaterialTheme.dimensions.paddingSmall,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(state.notes, key = { it.id }) { note ->
+                            NoteCard(
+                                note = note,
+                                onClick = { onNavigateToEditor(note.id) },
+                                onCopy = { viewModel.copyNote(note) }
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        contentPadding = PaddingValues(MaterialTheme.dimensions.paddingMedium),
+                        verticalArrangement = Arrangement.spacedBy(MaterialTheme.dimensions.paddingSmall),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        itemsIndexed(state.notes, key = { _, it -> it.id }) { index, note ->
+                            NoteCard(
+                                note = note,
+                                onClick = { onNavigateToEditor(note.id) },
+                                onCopy = { viewModel.copyNote(note) },
+                                onMoveUp = if (index > 0) { { viewModel.onMove(index, index - 1) } } else null,
+                                onMoveDown = if (index < state.notes.size - 1) { { viewModel.onMove(index, index + 1) } } else null
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LabelFilter(
+    labels: List<String>,
+    selectedLabel: String?,
+    onLabelSelected: (String?) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selectedLabel == null,
+                onClick = { onLabelSelected(null) },
+                label = { Text(stringResource(R.string.all)) }
+            )
+        }
+        items(labels) { label ->
+            FilterChip(
+                selected = selectedLabel == label,
+                onClick = { onLabelSelected(label) },
+                label = { Text(label) }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun NoteCard(
+    note: Note,
+    onClick: () -> Unit,
+    onCopy: () -> Unit,
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { showMenu = true }
+            ),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = Color(note.color)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            if (note.title.isNotBlank()) {
+                Text(
+                    text = note.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            if (note.content.isNotBlank()) {
+                val styledContent = remember(note.content) {
+                    parseMarkdown(note.content, stripMarkers = true).annotatedString
+                }
+                Text(
+                    text = styledContent,
+                    style = MaterialTheme.typography.bodyMedium,
+                    lineHeight = 20.sp,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = CircleShape
+                ) {
+                    Text(
+                        text = note.createdAt.formatToReadableDate(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontStyle = FontStyle.Italic,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                IconButton(
+                    onClick = { shareNote(context, note.title, note.content) },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.copy)) },
+                onClick = {
+                    onCopy()
+                    showMenu = false
+                },
+                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
+            )
+            if (onMoveUp != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.move_up)) },
+                    onClick = {
+                        onMoveUp()
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Default.ArrowUpward, contentDescription = null) }
+                )
+            }
+            if (onMoveDown != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.move_down)) },
+                    onClick = {
+                        onMoveDown()
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(Icons.Default.ArrowDownward, contentDescription = null) }
+                )
+            }
+        }
+    }
+}
