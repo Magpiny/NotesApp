@@ -12,8 +12,14 @@ import kotlinx.coroutines.flow.Flow
  */
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes WHERE isTrashed = 0 AND isArchived = 0 ORDER BY isPinned DESC, position ASC, updatedAt DESC")
+    @Query("SELECT * FROM notes WHERE isTrashed = 0 AND isArchived = 0 AND isLocked = 0 ORDER BY isPinned DESC, position ASC, updatedAt DESC")
     fun getActiveNotes(): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE isTrashed = 0 AND isArchived = 1 AND isLocked = 0 ORDER BY isPinned DESC, position ASC, updatedAt DESC")
+    fun getArchivedNotes(): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM notes WHERE isTrashed = 0 AND isLocked = 1 ORDER BY updatedAt DESC")
+    fun getLockedNotes(): Flow<List<NoteEntity>>
 
     @Query("SELECT * FROM notes WHERE id = :id")
     suspend fun getNoteById(id: String): NoteEntity?
@@ -39,7 +45,7 @@ interface NoteDao {
     @Query("""
         SELECT notes.* FROM notes 
         JOIN notes_fts ON notes.id = notes_fts.rowid 
-        WHERE notes_fts MATCH :query AND isTrashed = 0
+        WHERE notes_fts MATCH :query AND isTrashed = 0 AND isLocked = 0
     """)
     fun searchNotes(query: String): Flow<List<NoteEntity>>
 

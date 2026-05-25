@@ -1,4 +1,4 @@
-package com.example.notesapp.presentation.archive
+package com.example.notesapp.presentation.vault
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -6,31 +6,55 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notesapp.R
+import com.example.notesapp.core.BiometricAuthManager
 import com.example.notesapp.core.dimensions
 import com.example.notesapp.presentation.home.NoteCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArchiveScreen(
+fun VaultScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEditor: (String?) -> Unit,
-    viewModel: ArchiveViewModel = hiltViewModel()
+    biometricManager: BiometricAuthManager,
+    viewModel: VaultViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
+
+    LaunchedEffect(Unit) {
+        if (!state.isAuthenticated && activity != null) {
+            if (biometricManager.isBiometricAvailable()) {
+                biometricManager.showBiometricPrompt(
+                    activity = activity,
+                    title = "Secret Vault",
+                    subtitle = "Authenticate to view private notes",
+                    onSuccess = { viewModel.onAuthSuccess() },
+                    onError = { onNavigateBack() }
+                )
+            } else {
+                // No biometrics, just allow for now or handle fallback
+                viewModel.onAuthSuccess()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.archive)) },
+                title = { Text("Secret Vault") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -39,13 +63,21 @@ fun ArchiveScreen(
             )
         }
     ) { padding ->
-        if (state.isLoading) {
+        if (!state.isAuthenticated) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else if (state.notes.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No archived notes")
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Your secret notes will appear here.")
+                }
             }
         } else {
             LazyVerticalStaggeredGrid(
@@ -59,7 +91,7 @@ fun ArchiveScreen(
                     NoteCard(
                         note = note,
                         onClick = { onNavigateToEditor(note.id) },
-                        onCopy = { viewModel.copyNote(note) }
+                        onCopy = { /* Optional */ }
                     )
                 }
             }

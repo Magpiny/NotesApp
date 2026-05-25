@@ -15,7 +15,8 @@ data class SettingsUiState(
     val themeMode: String = "System",
     val dynamicColor: Boolean = true,
     val isGridView: Boolean = true,
-    val language: String = "en"
+    val language: String = "en",
+    val fontFamily: String = "Sans"
 )
 
 @HiltViewModel
@@ -27,9 +28,10 @@ class SettingsViewModel @Inject constructor(
         settingsRepository.themeMode,
         settingsRepository.dynamicColor,
         settingsRepository.isGridView,
-        settingsRepository.language
-    ) { theme, dynamic, grid, lang ->
-        SettingsUiState(theme, dynamic, grid, lang)
+        settingsRepository.language,
+        settingsRepository.fontFamily
+    ) { theme, dynamic, grid, lang, font ->
+        SettingsUiState(theme, dynamic, grid, lang, font)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -57,6 +59,12 @@ class SettingsViewModel @Inject constructor(
     fun setLanguage(languageCode: String) {
         viewModelScope.launch {
             settingsRepository.setLanguage(languageCode)
+        }
+    }
+
+    fun setFontFamily(fontFamily: String) {
+        viewModelScope.launch {
+            settingsRepository.setFontFamily(fontFamily)
         }
     }
 }

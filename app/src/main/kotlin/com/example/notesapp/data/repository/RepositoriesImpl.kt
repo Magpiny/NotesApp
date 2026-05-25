@@ -24,6 +24,14 @@ class NoteRepositoryImpl @Inject constructor(
         return dao.getActiveNotes().map { list -> list.map { it.toDomain() } }
     }
 
+    override fun getArchivedNotes(): Flow<List<Note>> {
+        return dao.getArchivedNotes().map { list -> list.map { it.toDomain() } }
+    }
+
+    override fun getLockedNotes(): Flow<List<Note>> {
+        return dao.getLockedNotes().map { list -> list.map { it.toDomain() } }
+    }
+
     override fun searchNotes(query: String): Flow<List<Note>> {
         // FTS4 prefix matching: "term*"
         // We sanitize to remove double quotes which could break MATCH syntax

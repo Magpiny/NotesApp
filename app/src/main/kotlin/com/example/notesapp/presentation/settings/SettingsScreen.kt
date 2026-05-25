@@ -91,6 +91,31 @@ fun SettingsScreen(
                 selectedLanguage = state.language,
                 onLanguageSelected = viewModel::setLanguage
             )
+
+            HorizontalDivider()
+
+            Text(text = "Font Style", style = MaterialTheme.typography.titleMedium)
+            FontSelector(
+                selectedFont = state.fontFamily,
+                onFontSelected = viewModel::setFontFamily
+            )
+        }
+    }
+}
+
+@Composable
+fun FontSelector(
+    selectedFont: String,
+    onFontSelected: (String) -> Unit
+) {
+    val options = listOf("Sans", "Serif", "Mono")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { font ->
+            FilterChip(
+                selected = selectedFont == font,
+                onClick = { onFontSelected(font) },
+                label = { Text(font) }
+            )
         }
     }
 }

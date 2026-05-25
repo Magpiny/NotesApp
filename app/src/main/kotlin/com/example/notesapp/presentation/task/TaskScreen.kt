@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
 import com.example.notesapp.domain.model.Task
 import com.example.notesapp.domain.model.TaskPriority
 import com.example.notesapp.domain.model.TaskStatus
@@ -40,6 +41,7 @@ fun TaskScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     var quickAddText by remember { mutableStateOf("") }
 
     LaunchedEffect(viewModel.events) {
@@ -122,7 +124,7 @@ fun TaskScreen(
                     KanbanBoard(
                         tasks = state.tasks,
                         onStatusChange = viewModel::updateTaskStatus,
-                        onDelete = viewModel::deleteTask,
+                        onDelete = { viewModel.deleteTask(it, context) },
                         onClick = onNavigateToTaskEditor,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -136,7 +138,7 @@ fun TaskScreen(
                             TaskItem(
                                 task = task,
                                 onToggle = { viewModel.toggleTaskCompletion(task) },
-                                onDelete = { viewModel.deleteTask(task) },
+                                onDelete = { viewModel.deleteTask(task, context) },
                                 onClick = { onNavigateToTaskEditor(task.id) }
                             )
                         }

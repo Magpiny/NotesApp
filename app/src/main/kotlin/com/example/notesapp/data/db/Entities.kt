@@ -20,6 +20,7 @@ data class NoteEntity(
     val isPinned: Boolean,
     val isTrashed: Boolean,
     val isArchived: Boolean,
+    val isLocked: Boolean = false,
     val labels: String, // Comma separated for simplicity in Room without type converters
     val notebookId: String?,
     val position: Int = 0

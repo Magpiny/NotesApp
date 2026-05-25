@@ -12,6 +12,20 @@ class GetActiveNotesUseCase @Inject constructor(
     operator fun invoke(): Flow<List<Note>> = repository.getActiveNotes()
 }
 
+/** Use case to retrieve all archived notes. */
+class GetArchivedNotesUseCase @Inject constructor(
+    private val repository: NoteRepository
+) {
+    operator fun invoke(): Flow<List<Note>> = repository.getArchivedNotes()
+}
+
+/** Use case to retrieve all locked (vault) notes. */
+class GetLockedNotesUseCase @Inject constructor(
+    private val repository: NoteRepository
+) {
+    operator fun invoke(): Flow<List<Note>> = repository.getLockedNotes()
+}
+
 /** Use case to retrieve all unique labels. */
 class GetAllLabelsUseCase @Inject constructor(
     private val repository: NoteRepository

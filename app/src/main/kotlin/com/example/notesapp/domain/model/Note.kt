@@ -16,6 +16,7 @@ data class Note(
     val isPinned: Boolean,
     val isTrashed: Boolean,
     val isArchived: Boolean,
+    val isLocked: Boolean = false,
     val labels: List<String>,
     val notebookId: String?,
     val position: Int = 0

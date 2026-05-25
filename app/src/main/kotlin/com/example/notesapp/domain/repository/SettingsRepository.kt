@@ -18,6 +18,9 @@ interface SettingsRepository {
     /** Flow representing the current app language (e.g., "en", "es"). */
     val language: Flow<String>
 
+    /** Flow representing the current font family (e.g., "Sans", "Serif", "Mono"). */
+    val fontFamily: Flow<String>
+
     /** Updates the theme mode. */
     suspend fun setThemeMode(mode: String)
 
@@ -29,4 +32,7 @@ interface SettingsRepository {
 
     /** Updates the app language. */
     suspend fun setLanguage(languageCode: String)
+
+    /** Updates the font family. */
+    suspend fun setFontFamily(fontFamily: String)
 }

@@ -84,7 +84,7 @@ fun EditorScreen(
                     IconButton(onClick = viewModel::archiveNote) {
                         Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive))
                     }
-                    IconButton(onClick = viewModel::deleteNote) {
+                    IconButton(onClick = { viewModel.deleteNote(context) }) {
                         Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.delete))
                     }
                     IconButton(onClick = viewModel::togglePin) {

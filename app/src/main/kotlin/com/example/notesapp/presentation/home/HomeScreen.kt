@@ -45,6 +45,7 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val isSelectionMode = state.selectedNoteIds.isNotEmpty()
 
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
@@ -57,32 +58,58 @@ fun HomeScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            LargeTopAppBar(
-                title = { Text(stringResource(R.string.home)) },
-                actions = {
-                    IconButton(onClick = viewModel::toggleLayout) {
-                        Icon(
-                            imageVector = if (state.isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
-                            contentDescription = stringResource(R.string.default_view)
-                        )
+            if (isSelectionMode) {
+                TopAppBar(
+                    title = { Text("${state.selectedNoteIds.size} Selected") },
+                    navigationIcon = {
+                        IconButton(onClick = viewModel::clearSelection) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear Selection")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = viewModel::bulkLock) {
+                            Icon(Icons.Default.Lock, contentDescription = "Lock Selected")
+                        }
+                        IconButton(onClick = viewModel::bulkArchive) {
+                            Icon(Icons.Default.Archive, contentDescription = "Archive Selected")
+                        }
+                        IconButton(onClick = viewModel::bulkDelete) {
+                            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Selected")
+                        }
                     }
-                }
-            )
+                )
+            } else {
+                LargeTopAppBar(
+                    title = { Text(stringResource(R.string.home)) },
+                    actions = {
+                        IconButton(onClick = viewModel::toggleLayout) {
+                            Icon(
+                                imageVector = if (state.isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                                contentDescription = stringResource(R.string.default_view)
+                            )
+                        }
+                    }
+                )
+            }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onNavigateToEditor(null) }) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_note))
+            if (!isSelectionMode) {
+                FloatingActionButton(onClick = { onNavigateToEditor(null) }) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_note))
+                }
             }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            if (state.labels.isNotEmpty()) {
+            if (state.labels.isNotEmpty() && !isSelectionMode) {
                 LabelFilter(
                     labels = state.labels,
                     selectedLabel = state.selectedLabel,
                     onLabelSelected = viewModel::onLabelSelected
                 )
             }
+            
+            // ... rest of the list logic
 
             if (state.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -104,8 +131,13 @@ fun HomeScreen(
                         items(state.notes, key = { it.id }) { note ->
                             NoteCard(
                                 note = note,
-                                onClick = { onNavigateToEditor(note.id) },
-                                onCopy = { viewModel.copyNote(note) }
+                                onClick = { 
+                                    if (isSelectionMode) viewModel.toggleNoteSelection(note.id)
+                                    else onNavigateToEditor(note.id) 
+                                },
+                                onCopy = { viewModel.copyNote(note) },
+                                onLock = { viewModel.lockNote(note) },
+                                isSelected = state.selectedNoteIds.contains(note.id)
                             )
                         }
                     }
@@ -118,10 +150,15 @@ fun HomeScreen(
                         itemsIndexed(state.notes, key = { _, it -> it.id }) { index, note ->
                             NoteCard(
                                 note = note,
-                                onClick = { onNavigateToEditor(note.id) },
+                                onClick = { 
+                                    if (isSelectionMode) viewModel.toggleNoteSelection(note.id)
+                                    else onNavigateToEditor(note.id) 
+                                },
                                 onCopy = { viewModel.copyNote(note) },
-                                onMoveUp = if (index > 0) { { viewModel.onMove(index, index - 1) } } else null,
-                                onMoveDown = if (index < state.notes.size - 1) { { viewModel.onMove(index, index + 1) } } else null
+                                onLock = { viewModel.lockNote(note) },
+                                isSelected = state.selectedNoteIds.contains(note.id),
+                                onMoveUp = if (index > 0 && !isSelectionMode) { { viewModel.onMove(index, index - 1) } } else null,
+                                onMoveDown = if (index < state.notes.size - 1 && !isSelectionMode) { { viewModel.onMove(index, index + 1) } } else null
                             )
                         }
                     }
@@ -168,6 +205,8 @@ fun NoteCard(
     note: Note,
     onClick: () -> Unit,
     onCopy: () -> Unit,
+    onLock: (() -> Unit)? = null,
+    isSelected: Boolean = false,
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null
 ) {
@@ -183,8 +222,9 @@ fun NoteCard(
             ),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = Color(note.color)
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color(note.color)
         ),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -275,6 +315,16 @@ fun NoteCard(
                         showMenu = false
                     },
                     leadingIcon = { Icon(Icons.Default.ArrowDownward, contentDescription = null) }
+                )
+            }
+            if (onLock != null) {
+                DropdownMenuItem(
+                    text = { Text(if (note.isLocked) "Unlock" else "Lock") },
+                    onClick = {
+                        onLock()
+                        showMenu = false
+                    },
+                    leadingIcon = { Icon(if (note.isLocked) Icons.Default.LockOpen else Icons.Default.Lock, contentDescription = null) }
                 )
             }
         }

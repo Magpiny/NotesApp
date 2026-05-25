@@ -5,11 +5,11 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.CompositionLocalProvider
@@ -63,9 +63,35 @@ private fun Context.findActivity(): Activity? {
 fun NotesAppTheme(
     useDarkTheme: Boolean = isSystemInDarkTheme(),
     useDynamicColor: Boolean = true,
+    fontFamilyName: String = "Sans",
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    
+    val selectedFontFamily = when (fontFamilyName) {
+        "Serif" -> FontFamily.Serif
+        "Mono" -> FontFamily.Monospace
+        else -> FontFamily.SansSerif
+    }
+
+    val typography = Typography(
+        displayLarge = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 57.sp),
+        displayMedium = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 45.sp),
+        displaySmall = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 36.sp),
+        headlineLarge = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 32.sp),
+        headlineMedium = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 28.sp),
+        headlineSmall = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 24.sp),
+        titleLarge = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 22.sp),
+        titleMedium = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Medium, fontSize = 16.sp),
+        titleSmall = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp),
+        bodyLarge = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 16.sp),
+        bodyMedium = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+        bodySmall = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Normal, fontSize = 12.sp),
+        labelLarge = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp),
+        labelMedium = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Medium, fontSize = 12.sp),
+        labelSmall = TextStyle(fontFamily = selectedFontFamily, fontWeight = FontWeight.Medium, fontSize = 11.sp)
+    )
+
     val colors = when {
         useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -87,6 +113,7 @@ fun NotesAppTheme(
 
     MaterialTheme(
         colorScheme = colors,
+        typography = typography,
         content = {
             CompositionLocalProvider(LocalDimensions provides AppDimensions()) {
                 content()

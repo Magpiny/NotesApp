@@ -26,6 +26,7 @@ class SettingsRepositoryImpl @Inject constructor(
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val IS_GRID_VIEW = booleanPreferencesKey("is_grid_view")
         val LANGUAGE = stringPreferencesKey("language")
+        val FONT_FAMILY = stringPreferencesKey("font_family")
     }
 
     override val themeMode: Flow<String> = context.dataStore.data
@@ -64,6 +65,15 @@ class SettingsRepositoryImpl @Inject constructor(
             preferences[PreferencesKeys.LANGUAGE] ?: "en"
         }
 
+    override val fontFamily: Flow<String> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(androidx.datastore.preferences.core.emptyPreferences())
+            else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.FONT_FAMILY] ?: "Sans"
+        }
+
     override suspend fun setThemeMode(mode: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = mode
@@ -85,6 +95,12 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setLanguage(languageCode: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.LANGUAGE] = languageCode
+        }
+    }
+
+    override suspend fun setFontFamily(fontFamily: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FONT_FAMILY] = fontFamily
         }
     }
 }

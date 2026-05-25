@@ -12,6 +12,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.*
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.notesapp.core.BiometricAuthManager
 import com.example.notesapp.domain.repository.SettingsRepository
 import com.example.notesapp.presentation.MainScreen
 import com.example.notesapp.presentation.theme.NotesAppTheme
@@ -23,6 +24,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var settingsRepository: SettingsRepository
+
+    @Inject
+    lateinit var biometricManager: BiometricAuthManager
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -40,6 +44,7 @@ class MainActivity : ComponentActivity() {
             val themeMode by settingsRepository.themeMode.collectAsStateWithLifecycle(initialValue = "System")
             val dynamicColor by settingsRepository.dynamicColor.collectAsStateWithLifecycle(initialValue = true)
             val language by settingsRepository.language.collectAsStateWithLifecycle(initialValue = "en")
+            val fontFamily by settingsRepository.fontFamily.collectAsStateWithLifecycle(initialValue = "Sans")
 
             // Guarded locale update to prevent infinite recreation loop
             LaunchedEffect(language) {
@@ -58,9 +63,10 @@ class MainActivity : ComponentActivity() {
 
             NotesAppTheme(
                 useDarkTheme = useDarkTheme,
-                useDynamicColor = dynamicColor
+                useDynamicColor = dynamicColor,
+                fontFamilyName = fontFamily
             ) {
-                MainScreen()
+                MainScreen(biometricManager = biometricManager)
             }
         }
     }

@@ -7,6 +7,7 @@ import com.example.notesapp.domain.repository.SettingsRepository
 import com.example.notesapp.domain.usecase.GetActiveNotesUseCase
 import com.example.notesapp.domain.usecase.SaveNoteUseCase
 import com.example.notesapp.domain.usecase.GetAllLabelsUseCase
+import com.example.notesapp.domain.usecase.MoveNoteToTrashUseCase
 import com.example.notesapp.domain.usecase.UpdateNotesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import java.util.UUID
@@ -30,7 +32,8 @@ data class HomeUiState(
     val labels: List<String> = emptyList(),
     val selectedLabel: String? = null,
     val isGridView: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val selectedNoteIds: Set<String> = emptySet()
 )
 
 /** UI Events for Home Screen (e.g., Snackbar). */
@@ -47,6 +50,7 @@ class HomeViewModel @Inject constructor(
     getAllLabelsUseCase: GetAllLabelsUseCase,
     private val saveNoteUseCase: SaveNoteUseCase,
     private val updateNotesUseCase: UpdateNotesUseCase,
+    private val moveNoteToTrashUseCase: MoveNoteToTrashUseCase,
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
@@ -55,12 +59,15 @@ class HomeViewModel @Inject constructor(
 
     private val _selectedLabel = MutableStateFlow<String?>(null)
 
+    private val _selectedNoteIds = MutableStateFlow<Set<String>>(emptySet())
+
     val uiState: StateFlow<HomeUiState> = combine(
         getActiveNotesUseCase().onStart { emit(emptyList()) },
         getAllLabelsUseCase().onStart { emit(emptyList()) },
         _selectedLabel,
-        settingsRepository.isGridView.onStart { emit(true) }
-    ) { notes, labels, selectedLabel, isGrid ->
+        settingsRepository.isGridView.onStart { emit(true) },
+        _selectedNoteIds
+    ) { notes, labels, selectedLabel, isGrid, selectedIds ->
         val filteredNotes = if (selectedLabel == null) {
             notes
         } else {
@@ -71,7 +78,8 @@ class HomeViewModel @Inject constructor(
             labels = labels,
             selectedLabel = selectedLabel,
             isGridView = isGrid,
-            isLoading = false
+            isLoading = false,
+            selectedNoteIds = selectedIds
         )
     }.flowOn(Dispatchers.Default)
     .stateIn(
@@ -116,6 +124,60 @@ class HomeViewModel @Inject constructor(
     fun toggleLayout() {
         viewModelScope.launch {
             settingsRepository.setGridView(!uiState.value.isGridView)
+        }
+    }
+
+    fun lockNote(note: Note) {
+        viewModelScope.launch {
+            saveNoteUseCase(note.copy(isLocked = true, updatedAt = System.currentTimeMillis()))
+        }
+    }
+
+    fun toggleNoteSelection(noteId: String) {
+        _selectedNoteIds.update { current ->
+            if (current.contains(noteId)) current - noteId else current + noteId
+        }
+    }
+
+    fun clearSelection() {
+        _selectedNoteIds.value = emptySet()
+    }
+
+    fun bulkArchive() {
+        val selectedIds = _selectedNoteIds.value
+        if (selectedIds.isEmpty()) return
+        
+        viewModelScope.launch {
+            val allNotes = uiState.value.notes
+            val notesToArchive = allNotes.filter { selectedIds.contains(it.id) }.map {
+                it.copy(isArchived = true, updatedAt = System.currentTimeMillis())
+            }
+            updateNotesUseCase(notesToArchive)
+            clearSelection()
+        }
+    }
+
+    fun bulkDelete() {
+        val selectedIds = _selectedNoteIds.value
+        if (selectedIds.isEmpty()) return
+
+        viewModelScope.launch {
+            selectedIds.forEach { moveNoteToTrashUseCase(it) }
+            clearSelection()
+        }
+    }
+
+    fun bulkLock() {
+        val selectedIds = _selectedNoteIds.value
+        if (selectedIds.isEmpty()) return
+
+        viewModelScope.launch {
+            val allNotes = uiState.value.notes
+            val notesToLock = allNotes.filter { selectedIds.contains(it.id) }.map {
+                it.copy(isLocked = true, updatedAt = System.currentTimeMillis())
+            }
+            updateNotesUseCase(notesToLock)
+            clearSelection()
         }
     }
 }

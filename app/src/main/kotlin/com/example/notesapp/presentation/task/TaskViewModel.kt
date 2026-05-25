@@ -3,6 +3,7 @@ package com.example.notesapp.presentation.task
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesapp.core.NLPUtils
+import com.example.notesapp.core.SoundUtils
 import com.example.notesapp.core.TaskReminderManager
 import com.example.notesapp.domain.model.Task
 import com.example.notesapp.domain.model.TaskPriority
@@ -158,9 +159,11 @@ class TaskViewModel @Inject constructor(
         saveTaskUseCase(nextTask)
     }
 
-    fun deleteTask(task: Task) {
+    fun deleteTask(task: Task, context: android.content.Context) {
         viewModelScope.launch {
-            deleteTaskUseCase(task).onFailure {
+            deleteTaskUseCase(task).onSuccess {
+                SoundUtils.playDeletionSound(context)
+            }.onFailure {
                 _events.emit(TaskUiEvent.ShowSnackbar("Failed to delete task"))
             }
         }
