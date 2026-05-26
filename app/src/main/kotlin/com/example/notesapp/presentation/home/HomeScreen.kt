@@ -31,6 +31,7 @@ import com.example.notesapp.core.parseMarkdown
 import com.example.notesapp.core.shareNote
 import com.example.notesapp.domain.model.Note
 
+import com.example.notesapp.core.calculateOnColor
 import androidx.compose.ui.res.stringResource
 import com.example.notesapp.R
 
@@ -213,6 +214,9 @@ fun NoteCard(
     var showMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color(note.color)
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else containerColor.calculateOnColor()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,7 +226,8 @@ fun NoteCard(
             ),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color(note.color)
+            containerColor = containerColor,
+            contentColor = contentColor
         ),
         border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -234,7 +239,8 @@ fun NoteCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = contentColor
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -247,7 +253,8 @@ fun NoteCard(
                     style = MaterialTheme.typography.bodyMedium,
                     lineHeight = 20.sp,
                     maxLines = 5,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = contentColor.copy(alpha = 0.85f)
                 )
             }
             
@@ -259,7 +266,7 @@ fun NoteCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    color = contentColor.copy(alpha = 0.1f),
                     shape = CircleShape
                 ) {
                     Text(
@@ -267,7 +274,7 @@ fun NoteCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontStyle = FontStyle.Italic,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = contentColor.copy(alpha = 0.7f)
                     )
                 }
                 
@@ -279,7 +286,7 @@ fun NoteCard(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share",
                         modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = contentColor.copy(alpha = 0.7f)
                     )
                 }
             }

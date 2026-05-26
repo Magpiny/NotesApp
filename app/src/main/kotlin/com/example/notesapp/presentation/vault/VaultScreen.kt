@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import android.content.ContextWrapper
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notesapp.R
@@ -32,7 +33,15 @@ fun VaultScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val activity = context as? FragmentActivity
+    
+    val activity = remember(context) {
+        var ctx = context
+        while (ctx is ContextWrapper) {
+            if (ctx is FragmentActivity) break
+            ctx = ctx.baseContext
+        }
+        ctx as? FragmentActivity
+    }
 
     LaunchedEffect(Unit) {
         if (!state.isAuthenticated && activity != null) {

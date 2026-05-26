@@ -3,6 +3,8 @@ package com.example.notesapp.presentation.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -16,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import com.example.notesapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,6 +28,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
@@ -42,6 +46,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -109,12 +114,25 @@ fun FontSelector(
     onFontSelected: (String) -> Unit
 ) {
     val options = listOf("Sans", "Serif", "Mono")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         options.forEach { font ->
+            val family = when (font) {
+                "Serif" -> FontFamily.Serif
+                "Mono" -> FontFamily.Monospace
+                else -> FontFamily.SansSerif
+            }
             FilterChip(
                 selected = selectedFont == font,
                 onClick = { onFontSelected(font) },
-                label = { Text(font) }
+                label = { 
+                    Text(
+                        text = font,
+                        fontFamily = family
+                    ) 
+                }
             )
         }
     }

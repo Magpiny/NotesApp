@@ -20,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notesapp.R
 import com.example.notesapp.presentation.components.ColorPicker
+import com.example.notesapp.core.calculateOnColor
 import com.example.notesapp.core.dimensions
 import com.example.notesapp.core.shareNote
 import com.example.notesapp.core.MarkdownVisualTransformation
@@ -59,44 +60,51 @@ fun EditorScreen(
         )
     }
 
+    val contentColor = Color(state.color).calculateOnColor()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.saveAndExit() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = stringResource(R.string.back),
+                            tint = contentColor
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = { showLabelDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.Label, contentDescription = stringResource(R.string.labels))
+                        Icon(Icons.AutoMirrored.Filled.Label, contentDescription = stringResource(R.string.labels), tint = contentColor)
                     }
                     IconButton(onClick = viewModel::undo) {
-                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", tint = contentColor)
                     }
                     IconButton(onClick = viewModel::redo) {
-                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
+                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", tint = contentColor)
                     }
                     IconButton(onClick = { shareNote(context, state.title, state.content) }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = contentColor)
                     }
                     IconButton(onClick = viewModel::archiveNote) {
-                        Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive))
+                        Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive), tint = contentColor)
                     }
                     IconButton(onClick = { viewModel.deleteNote(context) }) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.delete))
+                        Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.delete), tint = contentColor)
                     }
                     IconButton(onClick = viewModel::togglePin) {
                         Icon(
                             imageVector = if (state.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                            contentDescription = "Toggle Pin"
+                            contentDescription = "Toggle Pin",
+                            tint = contentColor
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
+                    scrolledContainerColor = Color.Transparent
                 )
             )
         },
@@ -107,7 +115,8 @@ fun EditorScreen(
                 actions = {
                     Text(
                         text = "${state.wordCount} ${stringResource(R.string.words)} | ${state.charCount} ${stringResource(R.string.chars)}",
-                        style = MaterialTheme.typography.labelSmall
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor
                     )
                 },
                 floatingActionButton = {
@@ -121,6 +130,7 @@ fun EditorScreen(
     ) { padding ->
         Surface(
             color = Color(state.color),
+            contentColor = contentColor,
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
@@ -141,7 +151,11 @@ fun EditorScreen(
                                 selected = true,
                                 onClick = { viewModel.removeLabel(label) },
                                 label = { Text(label) },
-                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                colors = InputChipDefaults.inputChipColors(
+                                    selectedContainerColor = contentColor.copy(alpha = 0.1f),
+                                    selectedLabelColor = contentColor
+                                )
                             )
                         }
                     }
@@ -150,13 +164,20 @@ fun EditorScreen(
                 TextField(
                     value = state.title,
                     onValueChange = viewModel::onTitleChange,
-                    placeholder = { Text(stringResource(R.string.title), style = MaterialTheme.typography.headlineMedium) },
-                    textStyle = MaterialTheme.typography.headlineMedium,
+                    placeholder = { 
+                        Text(
+                            stringResource(R.string.title), 
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = contentColor.copy(alpha = 0.5f)
+                        ) 
+                    },
+                    textStyle = MaterialTheme.typography.headlineMedium.copy(color = contentColor),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = contentColor
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -164,14 +185,20 @@ fun EditorScreen(
                 TextField(
                     value = state.content,
                     onValueChange = viewModel::onContentChange,
-                    placeholder = { Text(stringResource(R.string.note_content)) },
-                    textStyle = MaterialTheme.typography.bodyLarge,
+                    placeholder = { 
+                        Text(
+                            stringResource(R.string.note_content),
+                            color = contentColor.copy(alpha = 0.5f)
+                        ) 
+                    },
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
                     visualTransformation = MarkdownVisualTransformation(),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = contentColor
                     ),
                     modifier = Modifier
                         .fillMaxWidth()

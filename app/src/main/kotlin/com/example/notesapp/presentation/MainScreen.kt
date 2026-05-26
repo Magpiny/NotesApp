@@ -1,6 +1,8 @@
 package com.example.notesapp.presentation
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
@@ -8,7 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -55,10 +60,40 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
                     )
 
                     items.forEach { (route, label, icon) ->
+                        val isSelected = currentDestination?.hierarchy?.any { it.route == route } == true
+                        
                         NavigationBarItem(
-                            icon = { Icon(icon, contentDescription = label) },
-                            label = { Text(label, maxLines = 1) },
-                            selected = currentDestination?.hierarchy?.any { it.route == route } == true,
+                            icon = { 
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .size(if (isSelected) 64.dp else 48.dp)
+                                        .then(
+                                            if (isSelected) Modifier.background(
+                                                MaterialTheme.colorScheme.secondaryContainer,
+                                                CircleShape
+                                            ) else Modifier
+                                        )
+                                ) {
+                                    Icon(
+                                        imageVector = icon, 
+                                        contentDescription = label,
+                                        tint = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer 
+                                               else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            label = { 
+                                Text(
+                                    text = label, 
+                                    maxLines = 1,
+                                    style = MaterialTheme.typography.labelSmall
+                                ) 
+                            },
+                            selected = isSelected,
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Color.Transparent
+                            ),
                             onClick = {
                                 navController.navigate(route) {
                                     popUpTo(navController.graph.findStartDestination().id) {

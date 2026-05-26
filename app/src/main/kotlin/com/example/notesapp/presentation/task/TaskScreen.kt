@@ -149,6 +149,7 @@ fun TaskScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KanbanBoard(
     tasks: List<Task>,
@@ -158,22 +159,39 @@ fun KanbanBoard(
     modifier: Modifier = Modifier
 ) {
     val statuses = TaskStatus.entries.filter { it != TaskStatus.CANCELLED }
-    
-    LazyRow(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(statuses) { status ->
-            KanbanColumn(
-                status = status,
-                tasks = tasks.filter { it.status == status },
-                onStatusChange = onStatusChange,
-                onDelete = onDelete,
-                onClick = onClick,
-                modifier = Modifier.width(280.dp)
-            )
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        PrimaryTabRow(
+            selectedTabIndex = selectedTabIndex,
+            containerColor = Color.Transparent,
+            divider = {}
+        ) {
+            statuses.forEachIndexed { index, status ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { selectedTabIndex = index },
+                    text = {
+                        Text(
+                            text = status.name.replace("_", " "),
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                    }
+                )
+            }
         }
+
+        val currentStatus = statuses[selectedTabIndex]
+        KanbanColumn(
+            status = currentStatus,
+            tasks = tasks.filter { it.status == currentStatus },
+            onStatusChange = onStatusChange,
+            onDelete = onDelete,
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        )
     }
 }
 
