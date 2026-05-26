@@ -1,16 +1,18 @@
-initial: implement a modern personal productivity suite with notes and tasks
+v2.1.1: Stability and Maintenance
 
-this commit establishes the core foundation and advanced features of the Notes + Tasks application, focused on privacy, local-first performance, and a premium material design 3 experience.
+This minor update addresses a critical startup crash and performs a comprehensive codebase cleanup to ensure technical excellence.
 
-key features implemented:
-- rich markdown notebook: supports real-time bold, italic, underline, and strikethrough with hidden markers for a clean visual experience.
-- smart todo system: includes a classic list view and a modern kanban board with drag-and-drop status progression.
-- note-task integration: automatically detects checklists in notes and synchronizes them as actionable tasks with bi-directional linking.
-- intelligent organization: supports xiaomi-style tagging/labeling with top-bar filtering and manual note reordering.
-- advanced task management: features recurring tasks (daily, weekly, monthly), priority levels, and local reminders.
-- productivity insights: dedicated analytics dashboard to track completion rates and 7-day trends.
-- nlp quick add: allow adding tasks instantly via natural language parsing (e.g., "buy milk tomorrow !high").
-- visual identity: unique "swagger" theme using a deep teal & navy palette, and a custom layered productivity app icon.
-- strictly local: zero internet usage, all data is stored in a multi-table room database with automatic migrations.
-- internationalization: full i18n support with language selection in settings.
-- technical foundation: built with jetpack compose, hilt, room, datastore, and follows clean architecture principles.
+Key Fixes:
+
+1. 🚀 Stability Improvements:
+   - Resolved a fatal crash on startup by transitioning MainActivity to FragmentActivity.
+   - Fixed theme compatibility issues between AppCompat and Material 3.
+
+2. 🧹 Codebase Optimization:
+   - Conducted a project-wide sweep to remove unused imports and dead code.
+   - Eliminated redundant SDK version checks (Project now targets minSdk 33).
+   - Removed unused ViewModel properties and functions in Task and Vault ViewModels.
+
+3. 🛠️ Technical Refinements:
+   - Optimized state delegation in EditorScreen to resolve state-reading warnings.
+   - Refined import structures in Home, Task, and Vault screens.

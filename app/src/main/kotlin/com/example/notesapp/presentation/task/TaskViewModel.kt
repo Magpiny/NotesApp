@@ -6,12 +6,10 @@ import com.example.notesapp.core.NLPUtils
 import com.example.notesapp.core.SoundUtils
 import com.example.notesapp.core.TaskReminderManager
 import com.example.notesapp.domain.model.Task
-import com.example.notesapp.domain.model.TaskPriority
 import com.example.notesapp.domain.model.TaskStatus
 import com.example.notesapp.domain.usecase.DeleteTaskUseCase
 import com.example.notesapp.domain.usecase.GetAllTasksUseCase
 import com.example.notesapp.domain.usecase.SaveTaskUseCase
-import com.example.notesapp.domain.usecase.UpdateTasksUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +43,6 @@ class TaskViewModel @Inject constructor(
     getAllTasksUseCase: GetAllTasksUseCase,
     private val saveTaskUseCase: SaveTaskUseCase,
     private val deleteTaskUseCase: DeleteTaskUseCase,
-    private val updateTasksUseCase: UpdateTasksUseCase,
     private val reminderManager: TaskReminderManager
 ) : ViewModel() {
 
@@ -166,22 +163,6 @@ class TaskViewModel @Inject constructor(
             }.onFailure {
                 _events.emit(TaskUiEvent.ShowSnackbar("Failed to delete task"))
             }
-        }
-    }
-
-    fun reorderTasks(fromIndex: Int, toIndex: Int) {
-        val currentTasks = uiState.value.tasks.toMutableList()
-        if (fromIndex !in currentTasks.indices || toIndex !in currentTasks.indices) return
-
-        val movedTask = currentTasks.removeAt(fromIndex)
-        currentTasks.add(toIndex, movedTask)
-
-        val updatedTasks = currentTasks.mapIndexed { index, task ->
-            task.copy(position = index)
-        }
-
-        viewModelScope.launch {
-            updateTasksUseCase(updatedTasks)
         }
     }
 }

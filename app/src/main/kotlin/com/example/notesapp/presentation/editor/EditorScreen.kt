@@ -36,7 +36,7 @@ fun EditorScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var showLabelDialog by remember { mutableStateOf(false) }
+    val (showLabelDialog, setShowLabelDialog) = remember { mutableStateOf(false) }
 
     BackHandler {
         viewModel.saveAndExit()
@@ -56,7 +56,7 @@ fun EditorScreen(
             currentLabels = state.labels,
             onAddLabel = viewModel::addLabel,
             onRemoveLabel = viewModel::removeLabel,
-            onDismiss = { showLabelDialog = false }
+            onDismiss = { setShowLabelDialog(false) }
         )
     }
 
@@ -76,7 +76,7 @@ fun EditorScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showLabelDialog = true }) {
+                    IconButton(onClick = { setShowLabelDialog(true) }) {
                         Icon(Icons.AutoMirrored.Filled.Label, contentDescription = stringResource(R.string.labels), tint = contentColor)
                     }
                     IconButton(onClick = viewModel::undo) {
