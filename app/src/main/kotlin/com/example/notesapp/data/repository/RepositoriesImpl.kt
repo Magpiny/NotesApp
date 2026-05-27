@@ -33,12 +33,7 @@ class NoteRepositoryImpl @Inject constructor(
     }
 
     override fun searchNotes(query: String): Flow<List<Note>> {
-        // FTS4 prefix matching: "term*"
-        // We sanitize to remove double quotes which could break MATCH syntax
-        val sanitizedQuery = query.replace("\"", "")
-        val ftsQuery = if (sanitizedQuery.isBlank()) "" else "$sanitizedQuery*"
-
-        return dao.searchNotes(ftsQuery).map { list -> list.map { it.toDomain() } }
+        return dao.searchNotes(query).map { list -> list.map { it.toDomain() } }
     }
 
     override suspend fun getNoteById(id: String): Result<Note> = withContext(Dispatchers.IO) {

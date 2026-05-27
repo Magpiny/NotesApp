@@ -67,7 +67,7 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
                                 Box(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier
-                                        .size(if (isSelected) 64.dp else 48.dp)
+                                        .size(if (isSelected) 56.dp else 48.dp)
                                         .then(
                                             if (isSelected) Modifier.background(
                                                 MaterialTheme.colorScheme.secondaryContainer,

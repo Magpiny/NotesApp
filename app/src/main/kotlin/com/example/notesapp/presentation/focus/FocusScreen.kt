@@ -23,6 +23,24 @@ fun FocusScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    if (state.showCompletionDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDialog() },
+            title = { Text(if (state.isBreak) "Break Finished!" else "Focus Session Complete!") },
+            text = { Text(if (state.isBreak) "Ready to focus again?" else "Time to take a well-deserved break.") },
+            confirmButton = {
+                Button(onClick = { viewModel.startNextSession() }) {
+                    Text(if (state.isBreak) "Start Focus" else "Take Break")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissDialog() }) {
+                    Text("Stop for Today")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

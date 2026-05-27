@@ -14,9 +14,10 @@ import androidx.room.TypeConverters
         TaskEntity::class,
         ProjectEntity::class,
         SubtaskEntity::class,
+        FocusSessionEntity::class,
         TaskNoteCrossRef::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

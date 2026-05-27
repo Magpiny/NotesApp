@@ -14,6 +14,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notesapp.R
 import com.example.notesapp.domain.model.TaskPriority
 import com.example.notesapp.core.formatToReadableDate
+import com.example.notesapp.core.calculateOnColor
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,21 +35,36 @@ fun TaskEditorScreen(
         }
     }
 
+    val topBarColor = MaterialTheme.colorScheme.surface
+    val contentColor = topBarColor.calculateOnColor()
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isLoading) "" else stringResource(R.string.tasks)) }, // "Edit Task"
+                title = { Text(if (state.isLoading) "" else stringResource(R.string.tasks)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = stringResource(R.string.back),
+                            tint = contentColor
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::saveTask) {
-                        Icon(Icons.Default.Check, contentDescription = stringResource(R.string.done))
+                        Icon(
+                            Icons.Default.Check, 
+                            contentDescription = stringResource(R.string.done),
+                            tint = contentColor
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = topBarColor,
+                    titleContentColor = contentColor
+                )
             )
         }
     ) { padding ->

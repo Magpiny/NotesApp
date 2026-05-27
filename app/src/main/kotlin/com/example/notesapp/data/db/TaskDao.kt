@@ -44,6 +44,13 @@ interface TaskDao {
     @Delete
     suspend fun deleteSubtask(subtask: SubtaskEntity)
 
+    // Focus Sessions
+    @Insert
+    suspend fun insertFocusSession(session: FocusSessionEntity)
+
+    @Query("SELECT COUNT(*) FROM focus_sessions WHERE isBreak = 0 AND startTime >= :since")
+    fun getFocusSessionCount(since: Long): Flow<Int>
+
     // Links (Bi-directional linking)
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTaskNoteLink(ref: TaskNoteCrossRef)

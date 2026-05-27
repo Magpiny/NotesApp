@@ -2,6 +2,7 @@ package com.example.notesapp.presentation.editor
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -28,7 +29,7 @@ import com.example.notesapp.core.MarkdownVisualTransformation
 /**
  * Full-screen editor for creating and modifying notes.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun EditorScreen(
     onNavigateBack: () -> Unit,
@@ -104,13 +105,17 @@ fun EditorScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
+                    scrolledContainerColor = Color.Transparent,
+                    titleContentColor = contentColor,
+                    navigationIconContentColor = contentColor,
+                    actionIconContentColor = contentColor
                 )
             )
         },
         bottomBar = {
             BottomAppBar(
                 containerColor = Color.Transparent,
+                contentColor = contentColor,
                 contentPadding = PaddingValues(horizontal = MaterialTheme.dimensions.paddingMedium),
                 actions = {
                     Text(

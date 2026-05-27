@@ -42,8 +42,7 @@ data class TaskEntity(
     val labels: String // Comma separated
 )
 
-@Entity(
-    tableName = "subtasks",
+@Entity(tableName = "subtasks",
     foreignKeys = [
         ForeignKey(
             entity = TaskEntity::class,
@@ -60,6 +59,14 @@ data class SubtaskEntity(
     val title: String,
     val isCompleted: Boolean,
     val position: Int
+)
+
+@Entity(tableName = "focus_sessions")
+data class FocusSessionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val startTime: Long,
+    val duration: Long,
+    val isBreak: Boolean
 )
 
 @Entity(

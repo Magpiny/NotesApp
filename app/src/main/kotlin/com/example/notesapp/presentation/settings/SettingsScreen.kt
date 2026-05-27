@@ -1,6 +1,7 @@
 package com.example.notesapp.presentation.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.rememberScrollState
@@ -138,13 +139,28 @@ fun FontSelector(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LanguageSelector(
     selectedLanguage: String,
     onLanguageSelected: (String) -> Unit
 ) {
-    val options = listOf("en" to "English", "es" to "Español")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val options = listOf(
+        "en" to "English",
+        "es" to "Español",
+        "fr" to "Français",
+        "pt" to "Português",
+        "ar" to "العربية",
+        "sw" to "Kiswahili",
+        "ko" to "한국어",
+        "ja" to "日本語",
+        "zh" to "中文"
+    )
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         options.forEach { (code, name) ->
             FilterChip(
                 selected = selectedLanguage == code,

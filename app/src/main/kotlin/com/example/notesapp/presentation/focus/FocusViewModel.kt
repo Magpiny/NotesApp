@@ -2,27 +2,51 @@ package com.example.notesapp.presentation.focus
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.notesapp.data.db.FocusSessionEntity
+import com.example.notesapp.data.db.TaskDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 data class FocusUiState(
     val remainingTime: Long = 25 * 60 * 1000L,
     val isRunning: Boolean = false,
     val isBreak: Boolean = false,
-    val sessionCount: Int = 0
+    val sessionCount: Int = 0,
+    val showCompletionDialog: Boolean = false
 )
 
 @HiltViewModel
-class FocusViewModel @Inject constructor() : ViewModel() {
+class FocusViewModel @Inject constructor(
+    private val taskDao: TaskDao
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FocusUiState())
     val uiState = _uiState.asStateFlow()
 
     private var timerJob: Job? = null
+
+    init {
+        loadTodaySessionCount()
+    }
+
+    private fun loadTodaySessionCount() {
+        val todayStart = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        taskDao.getFocusSessionCount(todayStart)
+            .onEach { count ->
+                _uiState.update { it.copy(sessionCount = count) }
+            }.launchIn(viewModelScope)
+    }
 
     fun toggleTimer() {
         if (_uiState.value.isRunning) {
@@ -55,15 +79,33 @@ class FocusViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun onTimerFinished() {
+        pauseTimer()
+        viewModelScope.launch {
+            taskDao.insertFocusSession(
+                FocusSessionEntity(
+                    startTime = System.currentTimeMillis() - if (_uiState.value.isBreak) 5 * 60 * 1000L else 25 * 60 * 1000L,
+                    duration = if (_uiState.value.isBreak) 5 * 60 * 1000L else 25 * 60 * 1000L,
+                    isBreak = _uiState.value.isBreak
+                )
+            )
+            _uiState.update { it.copy(showCompletionDialog = true) }
+        }
+    }
+
+    fun startNextSession() {
         _uiState.update { 
             val wasBreak = it.isBreak
-            val newSessionCount = if (!wasBreak) it.sessionCount + 1 else it.sessionCount
             it.copy(
-                isRunning = false,
+                showCompletionDialog = false,
                 isBreak = !wasBreak,
-                remainingTime = if (!wasBreak) 5 * 60 * 1000L else 25 * 60 * 1000L,
-                sessionCount = newSessionCount
+                remainingTime = if (!wasBreak) 5 * 60 * 1000L else 25 * 60 * 1000L
             )
         }
+        startTimer()
+    }
+
+    fun dismissDialog() {
+        _uiState.update { it.copy(showCompletionDialog = false) }
+        resetTimer()
     }
 }

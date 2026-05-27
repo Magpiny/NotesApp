@@ -44,8 +44,8 @@ interface NoteDao {
 
     @Query("""
         SELECT notes.* FROM notes 
-        JOIN notes_fts ON notes.id = notes_fts.rowid 
-        WHERE notes_fts MATCH :query AND isTrashed = 0 AND isLocked = 0
+        WHERE (notes.title LIKE '%' || :query || '%' OR notes.content LIKE '%' || :query || '%') 
+        AND isTrashed = 0 AND isLocked = 0
     """)
     fun searchNotes(query: String): Flow<List<NoteEntity>>
 
