@@ -25,6 +25,7 @@ import com.example.notesapp.core.calculateOnColor
 import com.example.notesapp.core.dimensions
 import com.example.notesapp.core.shareNote
 import com.example.notesapp.core.MarkdownVisualTransformation
+import com.example.notesapp.core.SoundUtils
 
 /**
  * Full-screen editor for creating and modifying notes.
@@ -38,6 +39,7 @@ fun EditorScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val (showLabelDialog, setShowLabelDialog) = remember { mutableStateOf(false) }
+    val (showDeleteDialog, setShowDeleteDialog) = remember { mutableStateOf(false) }
 
     BackHandler {
         viewModel.saveAndExit()
@@ -61,9 +63,37 @@ fun EditorScreen(
         )
     }
 
-    val contentColor = Color(state.color).calculateOnColor()
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { setShowDeleteDialog(false) },
+            title = { Text(stringResource(R.string.delete_note)) },
+            text = { Text(stringResource(R.string.delete_confirmation_msg)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        setShowDeleteDialog(false)
+                        viewModel.deleteNote()
+                    }
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { setShowDeleteDialog(false) }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
+
+    val backgroundColor = Color(state.color.toInt())
+    val contentColor = backgroundColor.calculateOnColor()
+    // Specifically make icons "beautifully bright" (White) as requested, 
+    // while keeping text color (contentColor) as it was for readability.
+    val iconTint = Color.White
 
     Scaffold(
+        containerColor = backgroundColor,
         topBar = {
             TopAppBar(
                 title = { },
@@ -72,56 +102,61 @@ fun EditorScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack, 
                             contentDescription = stringResource(R.string.back),
-                            tint = contentColor
+                            tint = iconTint
                         )
                     }
                 },
                 actions = {
                     IconButton(onClick = { setShowLabelDialog(true) }) {
-                        Icon(Icons.AutoMirrored.Filled.Label, contentDescription = stringResource(R.string.labels), tint = contentColor)
+                        Icon(Icons.AutoMirrored.Filled.Label, contentDescription = stringResource(R.string.labels), tint = iconTint)
                     }
                     IconButton(onClick = viewModel::undo) {
-                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", tint = contentColor)
+                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", tint = iconTint)
                     }
                     IconButton(onClick = viewModel::redo) {
-                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", tint = contentColor)
+                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", tint = iconTint)
                     }
                     IconButton(onClick = { shareNote(context, state.title, state.content) }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = contentColor)
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = iconTint)
                     }
                     IconButton(onClick = viewModel::archiveNote) {
-                        Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive), tint = contentColor)
+                        Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive), tint = iconTint)
                     }
-                    IconButton(onClick = { viewModel.deleteNote(context) }) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.delete), tint = contentColor)
+                    IconButton(onClick = { 
+                        SoundUtils.playDeletionSound(context)
+                        setShowDeleteDialog(true) 
+                    }) {
+                        Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.delete), tint = iconTint)
                     }
                     IconButton(onClick = viewModel::togglePin) {
                         Icon(
                             imageVector = if (state.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                             contentDescription = "Toggle Pin",
-                            tint = contentColor
+                            tint = iconTint
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     scrolledContainerColor = Color.Transparent,
-                    titleContentColor = contentColor,
-                    navigationIconContentColor = contentColor,
-                    actionIconContentColor = contentColor
+                    titleContentColor = iconTint,
+                    navigationIconContentColor = iconTint,
+                    actionIconContentColor = iconTint
                 )
             )
         },
         bottomBar = {
             BottomAppBar(
                 containerColor = Color.Transparent,
-                contentColor = contentColor,
-                contentPadding = PaddingValues(horizontal = MaterialTheme.dimensions.paddingMedium),
+                contentColor = iconTint,
+                contentPadding = PaddingValues(horizontal = MaterialTheme.dimensions.paddingSmall),
                 actions = {
                     Text(
                         text = "${state.wordCount} ${stringResource(R.string.words)} | ${state.charCount} ${stringResource(R.string.chars)}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = contentColor
+
+
+                        color = iconTint
                     )
                 },
                 floatingActionButton = {
@@ -133,83 +168,76 @@ fun EditorScreen(
             )
         }
     ) { padding ->
-        Surface(
-            color = Color(state.color),
-            contentColor = contentColor,
+        Column(
             modifier = Modifier
                 .padding(padding)
+                .imePadding()
                 .fillMaxSize()
         ) {
-            Column(
-                modifier = Modifier
-                    .imePadding()
-                    .fillMaxSize()
-            ) {
-                if (state.labels.isNotEmpty()) {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    ) {
-                        items(state.labels) { label ->
-                            InputChip(
-                                selected = true,
-                                onClick = { viewModel.removeLabel(label) },
-                                label = { Text(label) },
-                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                colors = InputChipDefaults.inputChipColors(
-                                    selectedContainerColor = contentColor.copy(alpha = 0.1f),
-                                    selectedLabelColor = contentColor
-                                )
+            if (state.labels.isNotEmpty()) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    items(state.labels) { label ->
+                        InputChip(
+                            selected = true,
+                            onClick = { viewModel.removeLabel(label) },
+                            label = { Text(label) },
+                            trailingIcon = { Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                            colors = InputChipDefaults.inputChipColors(
+                                selectedContainerColor = contentColor.copy(alpha = 0.1f),
+                                selectedLabelColor = contentColor
                             )
-                        }
+                        )
                     }
                 }
-
-                TextField(
-                    value = state.title,
-                    onValueChange = viewModel::onTitleChange,
-                    placeholder = { 
-                        Text(
-                            stringResource(R.string.title), 
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = contentColor.copy(alpha = 0.5f)
-                        ) 
-                    },
-                    textStyle = MaterialTheme.typography.headlineMedium.copy(color = contentColor),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = contentColor
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                TextField(
-                    value = state.content,
-                    onValueChange = viewModel::onContentChange,
-                    placeholder = { 
-                        Text(
-                            stringResource(R.string.note_content),
-                            color = contentColor.copy(alpha = 0.5f)
-                        ) 
-                    },
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
-                    visualTransformation = MarkdownVisualTransformation(),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor = contentColor
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
             }
+
+            TextField(
+                value = state.title,
+                onValueChange = viewModel::onTitleChange,
+                placeholder = { 
+                    Text(
+                        stringResource(R.string.title), 
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = contentColor.copy(alpha = 0.5f)
+                    ) 
+                },
+                textStyle = MaterialTheme.typography.headlineMedium.copy(color = contentColor),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = contentColor
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            TextField(
+                value = state.content,
+                onValueChange = viewModel::onContentChange,
+                placeholder = { 
+                    Text(
+                        stringResource(R.string.note_content),
+                        color = contentColor.copy(alpha = 0.5f)
+                    ) 
+                },
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
+                visualTransformation = MarkdownVisualTransformation(),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    cursorColor = contentColor
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
         }
     }
 }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">Notes + Tasks</string>
+    <string name="app_name" translatable="false">Notafo</string>
     <string name="new_note">New Note</string>
     <string name="new_task">New Task</string>
     <string name="title">Title</string>
@@ -32,6 +32,8 @@
     <string name="home">Home</string>
     <string name="all">All</string>
     <string name="search">Search</string>
+    <string name="vault">Vault</string>
+    <string name="focus">Focus</string>
     <string name="productivity_insights">Productivity Insights</string>
     <string name="completion_rate">Completion Rate</string>
     <string name="recently_completed">Recently Completed</string>
@@ -48,4 +50,8 @@
     <string name="monthly">Monthly</string>
     <string name="tomorrow">Tomorrow</string>
     <string name="clear">Clear</string>
+    <string name="delete_note">Delete Note</string>
+    <string name="delete_confirmation_msg">Are you sure you want to delete this note?</string>
+    <string name="select_date">Select date</string>
+    <string name="select_time">Select time</string>
 </resources>

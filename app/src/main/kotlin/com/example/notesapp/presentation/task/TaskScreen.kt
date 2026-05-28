@@ -36,6 +36,7 @@ import com.example.notesapp.R
 fun TaskScreen(
     onNavigateToTaskEditor: (String?) -> Unit,
     onNavigateToAnalytics: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: TaskViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -56,6 +57,11 @@ fun TaskScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.tasks)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+                    }
+                },
                 actions = {
                     IconButton(onClick = onNavigateToAnalytics) {
                         Icon(Icons.Default.Insights, contentDescription = stringResource(R.string.productivity_insights))

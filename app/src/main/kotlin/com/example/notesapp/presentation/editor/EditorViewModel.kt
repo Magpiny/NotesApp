@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesapp.core.Constants
-import com.example.notesapp.core.SoundUtils
 import com.example.notesapp.domain.model.Note
 import com.example.notesapp.domain.usecase.GetNoteByIdUseCase
 import com.example.notesapp.domain.usecase.MoveNoteToTrashUseCase
@@ -266,10 +265,9 @@ class EditorViewModel @Inject constructor(
         }
     }
 
-    fun deleteNote(context: android.content.Context) {
+    fun deleteNote() {
         viewModelScope.launch {
             moveNoteToTrashUseCase(_uiState.value.id)
-            SoundUtils.playDeletionSound(context)
             _events.emit(EditorUiEvent.NavigateBack)
         }
     }

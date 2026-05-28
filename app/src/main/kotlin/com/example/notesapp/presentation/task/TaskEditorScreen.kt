@@ -16,6 +16,8 @@ import com.example.notesapp.domain.model.TaskPriority
 import com.example.notesapp.core.formatToReadableDate
 import com.example.notesapp.core.calculateOnColor
 import androidx.compose.ui.graphics.Color
+import java.util.Calendar
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +27,11 @@ fun TaskEditorScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+    val timePickerState = rememberTimePickerState(is24Hour = true)
 
     LaunchedEffect(viewModel.events) {
         viewModel.events.collect { event ->
@@ -103,12 +110,11 @@ fun TaskEditorScreen(
 
             Text(text = stringResource(R.string.due_date), style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(
-                    text = state.dueDate?.formatToReadableDate() ?: stringResource(R.string.none),
+                Text(text = state.dueDate?.formatToReadableDate() ?: stringResource(R.string.none),
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = { viewModel.onDueDateChange(System.currentTimeMillis() + 86400000) }) {
-                    Text(stringResource(R.string.tomorrow))
+                TextButton(onClick = { showDatePicker = true }) {
+                    Text(stringResource(R.string.select_date))
                 }
                 if (state.dueDate != null) {
                     TextButton(onClick = { viewModel.onDueDateChange(null) }) {
@@ -134,5 +140,57 @@ fun TaskEditorScreen(
                 }
             }
         }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                    showTimePicker = true
+                }) { Text(stringResource(android.R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showTimePicker = false
+                    val calendar = Calendar.getInstance()
+                    datePickerState.selectedDateMillis?.let { dateMillis ->
+                        val utcCalendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                            timeInMillis = dateMillis
+                        }
+                        calendar.set(Calendar.YEAR, utcCalendar.get(Calendar.YEAR))
+                        calendar.set(Calendar.MONTH, utcCalendar.get(Calendar.MONTH))
+                        calendar.set(Calendar.DAY_OF_MONTH, utcCalendar.get(Calendar.DAY_OF_MONTH))
+                    }
+                    calendar.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                    calendar.set(Calendar.MINUTE, timePickerState.minute)
+                    calendar.set(Calendar.SECOND, 0)
+                    calendar.set(Calendar.MILLISECOND, 0)
+                    viewModel.onDueDateChange(calendar.timeInMillis)
+                }) { Text(stringResource(android.R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            }
+        )
     }
 }

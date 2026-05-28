@@ -29,6 +29,7 @@ class FocusViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     private var timerJob: Job? = null
+    private var endTimeMillis: Long = 0L
 
     init {
         loadTodaySessionCount()
@@ -58,10 +59,14 @@ class FocusViewModel @Inject constructor(
 
     private fun startTimer() {
         _uiState.update { it.copy(isRunning = true) }
+        endTimeMillis = System.currentTimeMillis() + _uiState.value.remainingTime
         timerJob = viewModelScope.launch {
-            while (_uiState.value.remainingTime > 0) {
+            while (true) {
+                val now = System.currentTimeMillis()
+                val remaining = (endTimeMillis - now).coerceAtLeast(0L)
+                _uiState.update { it.copy(remainingTime = remaining) }
+                if (remaining <= 0) break
                 delay(1000L)
-                _uiState.update { it.copy(remainingTime = it.remainingTime - 1000L) }
             }
             onTimerFinished()
         }
@@ -69,7 +74,9 @@ class FocusViewModel @Inject constructor(
 
     private fun pauseTimer() {
         timerJob?.cancel()
-        _uiState.update { it.copy(isRunning = false) }
+        val now = System.currentTimeMillis()
+        val remaining = (endTimeMillis - now).coerceAtLeast(0L)
+        _uiState.update { it.copy(isRunning = false, remainingTime = remaining) }
     }
 
     fun resetTimer() {

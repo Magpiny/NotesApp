@@ -1,27 +1,27 @@
-# NotesApp
+# Notafo (Notes + Tasks + Focus)
 
-NotesApp is a modern, local-first personal productivity suite for Android. It combines a highly secure note-taking experience with an advanced task management system, all within a sleek, "Swagger" design.
+Notafo is a modern, local-first personal productivity suite for Android. It combines a highly secure note-taking experience with an advanced task management system and deep-work tools, all within a sleek, "Swagger" design.
 
-## 🚀 Version 2.0 Highlights
+## 🚀 Version 2.3.4 Highlights
 
-This major update transforms the app into a full-featured productivity suite with a focus on privacy and efficiency.
+This update rebranding the app to **Notafo** and introduces significant UI refinements, security hardening, and logic improvements.
 
 ### 🛡️ Security & Privacy
-- **Secret Vault:** A dedicated secure section for sensitive notes, hidden from main lists and search results.
-- **Biometric Authentication:** Protection for the vault using the Android Biometric API (Fingerprint and Face ID).
-- **Per-note Locking:** Lock individual notes with a single tap for extra privacy.
+- **Hardened Secret Vault:** Strictly enforced biometric/device security (Fingerprint, Face, or PIN). Access is denied if no device security is configured.
+- **Biometric Authentication:** Protection for the vault using the Android Biometric API.
 - **Strictly Local:** 100% offline performance. Your data never leaves your device.
 
 ### ⏱️ Advanced Productivity
+- **Smart Todo System:** Resolved task list clutter by filtering completed/cancelled tasks from the active list.
 - **Pomodoro Focus Timer:** Built-in timer with 25/5 minute cycles and session tracking to improve deep work.
-- **Smart Todo System:** Classic list and modern Kanban board views with status-based workflow progression.
-- **NLP Quick Add:** Add tasks via natural language parsing (e.g., "buy groceries tomorrow !high #home").
+- **NLP Quick Add:** Add tasks via natural language parsing (e.g., "buy milk tomorrow !high #home").
 - **Recurring Tasks:** Support for daily, weekly, and monthly task automation.
 
-### 🎨 Visual Identity
+### 🎨 Visual Identity & UI Polish
 - **"Swagger" Design:** A unique brand identity using a deep teal & midnight navy color palette.
-- **Dynamic Typography:** User-selectable font families (Serif, Sans-serif, Monospace) and optimized legibility.
-- **Clean Markdown:** Formatting tokens (like `**` and `_`) are hidden for a cleaner visual experience.
+- **Beautifully Bright Icons:** Action icons in the editor (Undo, Share, Delete, Pin) are now consistently bright white for a polished look.
+- **Optimized Layout:** Relocated Settings to the top-left and added an Archive icon to the Home screen for a cleaner bottom navigation bar.
+- **Dynamic Typography:** User-selectable font families (Serif, Sans-serif, Monospace) with high-contrast text for perfect readability.
 
 ## 🛠️ Technical Stack
 
@@ -31,11 +31,11 @@ This major update transforms the app into a full-featured productivity suite wit
 - **Dependency Injection:** Hilt
 - **Build System:** Gradle 9.2.1 (AGP) with KSP 2.3.8
 - **Concurrency:** Kotlin Coroutines & Flow
-- **Localization:** Multi-language support (English/Español)
+- **Localization:** Multi-language support (English/Español/Français/etc.)
 
 ## 📦 Installation
 
-NotesApp is designed for Android 8.0 (API 26) and above. You can build the project from source or download the latest APK from the [Releases](https://github.com/your-username/NotesApp/releases) page.
+Notafo is designed for Android 13.0 (API 33) and above. You can build the project from source using Android Studio Ladybug or later.
 
 ## ⚖️ License
 

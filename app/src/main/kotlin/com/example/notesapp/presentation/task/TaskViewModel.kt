@@ -55,9 +55,10 @@ class TaskViewModel @Inject constructor(
         getAllTasksUseCase().onStart { emit(emptyList()) },
         _isKanbanView
     ) { tasks, isKanban ->
+        val activeTasks = tasks.filter { it.status != TaskStatus.COMPLETED && it.status != TaskStatus.CANCELLED }
         val total = tasks.size
-        val completed = tasks.count { it.status == TaskStatus.COMPLETED }
-        val rate = if (total > 0) completed.toFloat() / total else 0f
+        val completedCount = tasks.count { it.status == TaskStatus.COMPLETED }
+        val rate = if (total > 0) completedCount.toFloat() / total else 0f
         
         val sevenDaysAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
         val last7Days = tasks.count { 
@@ -65,7 +66,7 @@ class TaskViewModel @Inject constructor(
         }
 
         TaskUiState(
-            tasks = tasks,
+            tasks = activeTasks,
             isKanbanView = isKanban,
             completionRate = rate,
             completedLast7Days = last7Days,

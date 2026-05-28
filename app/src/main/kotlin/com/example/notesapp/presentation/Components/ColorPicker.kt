@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.notesapp.core.calculateOnColor
 import com.example.notesapp.core.dimensions
 
 private val NoteColors = listOf(
@@ -42,7 +43,7 @@ fun ColorPicker(
         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.dimensions.paddingSmall)
     ) {
         items(NoteColors) { colorInt ->
-            val color = Color(colorInt)
+            val color = Color(colorInt.toInt())
             val isSelected = selectedColor == colorInt
 
             Box(
@@ -62,7 +63,7 @@ fun ColorPicker(
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Selected",
-                        tint = if (colorInt == 0xFFFFFFFF) Color.Black else Color.White
+                        tint = color.calculateOnColor()
                     )
                 }
             }

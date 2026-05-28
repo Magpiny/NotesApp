@@ -54,8 +54,9 @@ fun VaultScreen(
                     onError = { onNavigateBack() }
                 )
             } else {
-                // No biometrics, just allow for now or handle fallback
-                viewModel.onAuthSuccess()
+                // Deny access if biometrics/device security is not configured
+                // Or show a message. For now, let's navigate back with a snackbar or just prevent success.
+                onNavigateBack()
             }
         }
     }

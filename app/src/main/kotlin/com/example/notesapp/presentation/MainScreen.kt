@@ -52,11 +52,10 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
                 NavigationBar {
                     val items = listOf(
                         Triple("home", stringResource(R.string.home), Icons.Default.Home),
-                        Triple("vault", "Vault", Icons.Default.Lock),
+                        Triple("vault", stringResource(R.string.vault), Icons.Default.Lock),
                         Triple("tasks", stringResource(R.string.tasks), Icons.AutoMirrored.Filled.List),
-                        Triple("focus", "Focus", Icons.Default.Timer),
-                        Triple("search", stringResource(R.string.search), Icons.Default.Search),
-                        Triple("settings", stringResource(R.string.settings), Icons.Default.Settings)
+                        Triple("focus", stringResource(R.string.focus), Icons.Default.Timer),
+                        Triple("search", stringResource(R.string.search), Icons.Default.Search)
                     )
 
                     items.forEach { (route, label, icon) ->
@@ -119,7 +118,9 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
                     onNavigateToEditor = { id ->
                         val route = if (id != null) "editor?noteId=$id" else "editor"
                         navController.navigate(route)
-                    }
+                    },
+                    onNavigateToSettings = { navController.navigate("settings") },
+                    onNavigateToArchive = { navController.navigate("archive") }
                 )
             }
             composable("vault") {
@@ -140,7 +141,8 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
                     },
                     onNavigateToAnalytics = {
                         navController.navigate("task_analytics")
-                    }
+                    },
+                    onNavigateToSettings = { navController.navigate("settings") }
                 )
             }
             composable("focus") {

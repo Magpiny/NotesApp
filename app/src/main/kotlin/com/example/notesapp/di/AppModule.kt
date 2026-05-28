@@ -49,7 +49,7 @@ abstract class AppModule {
                 context,
                 NoteDatabase::class.java,
                 "notes_db"
-            ).fallbackToDestructiveMigration()
+            ).addMigrations() // Add specific migrations here if you change the schema
                 .build()
         }
 

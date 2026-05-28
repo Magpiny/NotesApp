@@ -1,5 +1,7 @@
 package com.example.notesapp.presentation.settings
 
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesapp.domain.repository.SettingsRepository
@@ -59,6 +61,8 @@ class SettingsViewModel @Inject constructor(
     fun setLanguage(languageCode: String) {
         viewModelScope.launch {
             settingsRepository.setLanguage(languageCode)
+            val appLocales = LocaleListCompat.forLanguageTags(languageCode)
+            AppCompatDelegate.setApplicationLocales(appLocales)
         }
     }
 

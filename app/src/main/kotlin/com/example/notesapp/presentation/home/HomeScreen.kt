@@ -41,6 +41,8 @@ import com.example.notesapp.R
 @Composable
 fun HomeScreen(
     onNavigateToEditor: (String?) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToArchive: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,7 +83,15 @@ fun HomeScreen(
             } else {
                 LargeTopAppBar(
                     title = { Text(stringResource(R.string.home)) },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings))
+                        }
+                    },
                     actions = {
+                        IconButton(onClick = onNavigateToArchive) {
+                            Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive))
+                        }
                         IconButton(onClick = viewModel::toggleLayout) {
                             Icon(
                                 imageVector = if (state.isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
@@ -213,7 +223,7 @@ fun NoteCard(
     var showMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color(note.color)
+    val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color(note.color.toInt())
     val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else containerColor.calculateOnColor()
 
     Card(
