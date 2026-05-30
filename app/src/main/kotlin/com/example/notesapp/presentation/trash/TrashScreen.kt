@@ -1,4 +1,4 @@
-package com.example.notesapp.presentation.vault
+package com.example.notesapp.presentation.trash
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -6,88 +6,53 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
-import android.content.ContextWrapper
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notesapp.R
-import com.example.notesapp.core.BiometricAuthManager
 import com.example.notesapp.core.dimensions
 import com.example.notesapp.presentation.home.NoteCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VaultScreen(
+fun TrashScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToEditor: (String?) -> Unit,
-    biometricManager: BiometricAuthManager,
-    viewModel: VaultViewModel = hiltViewModel()
+    viewModel: TrashViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    
-    val activity = remember(context) {
-        var ctx = context
-        while (ctx is ContextWrapper) {
-            if (ctx is FragmentActivity) break
-            ctx = ctx.baseContext
-        }
-        ctx as? FragmentActivity
-    }
-
-    LaunchedEffect(Unit) {
-        if (!state.isAuthenticated && activity != null) {
-            if (biometricManager.isBiometricAvailable()) {
-                biometricManager.showBiometricPrompt(
-                    activity = activity,
-                    title = "Secret Vault",
-                    subtitle = "Authenticate to view private notes",
-                    onSuccess = { viewModel.onAuthSuccess() },
-                    onError = { onNavigateBack() }
-                )
-            } else {
-                // Deny access if biometrics/device security is not configured
-                // Or show a message. For now, let's navigate back with a snackbar or just prevent success.
-                onNavigateBack()
-            }
-        }
-    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Secret Vault") },
+                title = { Text("Trash") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                },
+                actions = {
+                    if (state.notes.isNotEmpty()) {
+                        IconButton(onClick = viewModel::emptyTrash) {
+                            Icon(Icons.Default.DeleteForever, contentDescription = "Empty Trash")
+                        }
                     }
                 }
             )
         }
     ) { padding ->
-        if (!state.isAuthenticated) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (state.isLoading) {
+        if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else if (state.notes.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.outline)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Your secret notes will appear here.")
-                }
+                Text("No notes in trash")
             }
         } else {
             LazyVerticalStaggeredGrid(
@@ -100,10 +65,13 @@ fun VaultScreen(
                 items(state.notes, key = { it.id }) { note ->
                     NoteCard(
                         note = note,
-                        onClick = { onNavigateToEditor(note.id) },
+                        onClick = { /* Maybe show preview or restore dialog */ },
                         onCopy = { },
-                        onArchive = { },
-                        onDelete = { }
+                        onLock = { },
+                        onDelete = { viewModel.deletePermanently(note) },
+                        onArchive = { viewModel.restoreNote(note) },
+                        onMoveUp = null,
+                        onMoveDown = null
                     )
                 }
             }

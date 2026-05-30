@@ -1,7 +1,12 @@
 package com.example.notesapp.presentation.home
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -14,8 +19,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -43,6 +52,7 @@ fun HomeScreen(
     onNavigateToEditor: (String?) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToArchive: () -> Unit,
+    onNavigateToTrash: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -89,6 +99,9 @@ fun HomeScreen(
                         }
                     },
                     actions = {
+                        IconButton(onClick = onNavigateToTrash) {
+                            Icon(Icons.Default.Delete, contentDescription = "Trash")
+                        }
                         IconButton(onClick = onNavigateToArchive) {
                             Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive))
                         }
@@ -147,6 +160,8 @@ fun HomeScreen(
                                 },
                                 onCopy = { viewModel.copyNote(note) },
                                 onLock = { viewModel.lockNote(note) },
+                                onArchive = { viewModel.archiveNote(note) },
+                                onDelete = { viewModel.deleteNote(note) },
                                 isSelected = state.selectedNoteIds.contains(note.id)
                             )
                         }
@@ -158,23 +173,85 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(state.notes, key = { _, it -> it.id }) { index, note ->
-                            NoteCard(
-                                note = note,
-                                onClick = { 
-                                    if (isSelectionMode) viewModel.toggleNoteSelection(note.id)
-                                    else onNavigateToEditor(note.id) 
-                                },
-                                onCopy = { viewModel.copyNote(note) },
-                                onLock = { viewModel.lockNote(note) },
-                                isSelected = state.selectedNoteIds.contains(note.id),
-                                onMoveUp = if (index > 0 && !isSelectionMode) { { viewModel.onMove(index, index - 1) } } else null,
-                                onMoveDown = if (index < state.notes.size - 1 && !isSelectionMode) { { viewModel.onMove(index, index + 1) } } else null
+                            SwipeableNoteCard(
+                                onArchive = { viewModel.archiveNote(note) },
+                                onDelete = { viewModel.deleteNote(note) },
+                                content = {
+                                    NoteCard(
+                                        note = note,
+                                        onClick = { 
+                                            if (isSelectionMode) viewModel.toggleNoteSelection(note.id)
+                                            else onNavigateToEditor(note.id) 
+                                        },
+                                        onCopy = { viewModel.copyNote(note) },
+                                        onLock = { viewModel.lockNote(note) },
+                                        onArchive = { viewModel.archiveNote(note) },
+                                        onDelete = { viewModel.deleteNote(note) },
+                                        isSelected = state.selectedNoteIds.contains(note.id),
+                                        onMoveUp = if (index > 0 && !isSelectionMode) { { viewModel.onMove(index, index - 1) } } else null,
+                                        onMoveDown = if (index < state.notes.size - 1 && !isSelectionMode) { { viewModel.onMove(index, index + 1) } } else null
+                                    )
+                                }
                             )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeableNoteCard(
+    onArchive: () -> Unit,
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = {
+            when (it) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    onDelete()
+                    true
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onArchive()
+                    true
+                }
+                else -> false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val color by animateColorAsState(
+                when (dismissState.targetValue) {
+                    SwipeToDismissBoxValue.Settled -> Color.Transparent
+                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.errorContainer
+                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.secondaryContainer
+                }, label = "Color"
+            )
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color, MaterialTheme.shapes.large)
+                    .padding(horizontal = 24.dp),
+                contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+            ) {
+                if (direction == SwipeToDismissBoxValue.StartToEnd) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onErrorContainer)
+                } else if (direction == SwipeToDismissBoxValue.EndToStart) {
+                    Icon(Icons.Default.Archive, contentDescription = "Archive", tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+            }
+        }
+    ) {
+        content()
     }
 }
 
@@ -209,30 +286,122 @@ fun LabelFilter(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun NoteCard(
     note: Note,
     onClick: () -> Unit,
     onCopy: () -> Unit,
     onLock: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    onArchive: (() -> Unit)? = null,
     isSelected: Boolean = false,
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null
 ) {
-    var showMenu by remember { mutableStateOf(false) }
+    var showSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, label = "Scale")
 
     val containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color(note.color.toInt())
     val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else containerColor.calculateOnColor()
 
+    if (showSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheet = false },
+            sheetState = rememberModalBottomSheetState()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.copy)) },
+                    leadingContent = { Icon(Icons.Default.ContentCopy, null) },
+                    modifier = Modifier.clickable {
+                        onCopy()
+                        showSheet = false
+                    }
+                )
+                if (onArchive != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.archive)) },
+                        leadingContent = { Icon(Icons.Default.Archive, null) },
+                        modifier = Modifier.clickable {
+                            onArchive()
+                            showSheet = false
+                        }
+                    )
+                }
+                if (onDelete != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                        leadingContent = { Icon(Icons.Default.DeleteOutline, null, tint = MaterialTheme.colorScheme.error) },
+                        modifier = Modifier.clickable {
+                            onDelete()
+                            showSheet = false
+                        }
+                    )
+                }
+                if (onLock != null) {
+                    ListItem(
+                        headlineContent = { Text(if (note.isLocked) "Unlock" else "Lock") },
+                        leadingContent = { Icon(if (note.isLocked) Icons.Default.LockOpen else Icons.Default.Lock, null) },
+                        modifier = Modifier.clickable {
+                            onLock()
+                            showSheet = false
+                        }
+                    )
+                }
+                if (onMoveUp != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.move_up)) },
+                        leadingContent = { Icon(Icons.Default.ArrowUpward, null) },
+                        modifier = Modifier.clickable {
+                            onMoveUp()
+                            showSheet = false
+                        }
+                    )
+                }
+                if (onMoveDown != null) {
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.move_down)) },
+                        leadingContent = { Icon(Icons.Default.ArrowDownward, null) },
+                        modifier = Modifier.clickable {
+                            onMoveDown()
+                            showSheet = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { showMenu = true }
-            ),
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        try {
+                            awaitRelease()
+                        } finally {
+                            pressed = false
+                        }
+                    },
+                    onTap = { onClick() },
+                    onLongPress = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showSheet = true
+                    }
+                )
+            },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = containerColor,
@@ -298,50 +467,6 @@ fun NoteCard(
                         tint = contentColor.copy(alpha = 0.7f)
                     )
                 }
-            }
-        }
-
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { showMenu = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.copy)) },
-                onClick = {
-                    onCopy()
-                    showMenu = false
-                },
-                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
-            )
-            if (onMoveUp != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.move_up)) },
-                    onClick = {
-                        onMoveUp()
-                        showMenu = false
-                    },
-                    leadingIcon = { Icon(Icons.Default.ArrowUpward, contentDescription = null) }
-                )
-            }
-            if (onMoveDown != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.move_down)) },
-                    onClick = {
-                        onMoveDown()
-                        showMenu = false
-                    },
-                    leadingIcon = { Icon(Icons.Default.ArrowDownward, contentDescription = null) }
-                )
-            }
-            if (onLock != null) {
-                DropdownMenuItem(
-                    text = { Text(if (note.isLocked) "Unlock" else "Lock") },
-                    onClick = {
-                        onLock()
-                        showMenu = false
-                    },
-                    leadingIcon = { Icon(if (note.isLocked) Icons.Default.LockOpen else Icons.Default.Lock, contentDescription = null) }
-                )
             }
         }
     }

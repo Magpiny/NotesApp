@@ -23,6 +23,7 @@ data class TaskEditorUiState(
     val projectId: String? = null,
     val labels: List<String> = emptyList(),
     val projects: List<Project> = emptyList(),
+    val subtasks: List<Subtask> = emptyList(),
     val isLoading: Boolean = false
 )
 
@@ -37,6 +38,9 @@ class TaskEditorViewModel @Inject constructor(
     private val getTaskByIdUseCase: GetTaskByIdUseCase,
     private val saveTaskUseCase: SaveTaskUseCase,
     private val getAllProjectsUseCase: GetAllProjectsUseCase,
+    private val getSubtasksUseCase: GetSubtasksUseCase,
+    private val saveSubtaskUseCase: SaveSubtaskUseCase,
+    private val deleteSubtaskUseCase: DeleteSubtaskUseCase,
     private val reminderManager: TaskReminderManager
 ) : ViewModel() {
 
@@ -78,11 +82,44 @@ class TaskEditorViewModel @Inject constructor(
                             isLoading = false
                         )
                     }
+                    loadSubtasks(task.id)
                 }.onFailure {
                     _events.emit(TaskEditorUiEvent.ShowSnackbar("Failed to load task"))
                     _uiState.update { it.copy(isLoading = false) }
                 }
             }
+        }
+    }
+
+    private fun loadSubtasks(taskId: String) {
+        getSubtasksUseCase(taskId).onEach { subtasks ->
+            _uiState.update { it.copy(subtasks = subtasks) }
+        }.launchIn(viewModelScope)
+    }
+
+    fun addSubtask(title: String) {
+        if (title.isBlank()) return
+        val subtask = Subtask(
+            id = UUID.randomUUID().toString(),
+            taskId = _uiState.value.id,
+            title = title,
+            isCompleted = false,
+            position = _uiState.value.subtasks.size
+        )
+        viewModelScope.launch {
+            saveSubtaskUseCase(subtask)
+        }
+    }
+
+    fun toggleSubtask(subtask: Subtask) {
+        viewModelScope.launch {
+            saveSubtaskUseCase(subtask.copy(isCompleted = !subtask.isCompleted))
+        }
+    }
+
+    fun deleteSubtask(subtask: Subtask) {
+        viewModelScope.launch {
+            deleteSubtaskUseCase(subtask)
         }
     }
 
@@ -96,6 +133,10 @@ class TaskEditorViewModel @Inject constructor(
 
     fun onPriorityChange(newPriority: TaskPriority) {
         _uiState.update { it.copy(priority = newPriority) }
+    }
+
+    fun onStatusChange(newStatus: TaskStatus) {
+        _uiState.update { it.copy(status = newStatus) }
     }
 
     fun onDueDateChange(newDate: Long?) {

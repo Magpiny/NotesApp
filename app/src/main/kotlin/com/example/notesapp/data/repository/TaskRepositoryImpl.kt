@@ -21,6 +21,12 @@ class TaskRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun searchTasks(query: String): Flow<List<Task>> {
+        return dao.searchTasks(query).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     override suspend fun getTaskById(id: String): Result<Task> = withContext(Dispatchers.IO) {
         try {
             val entity = dao.getTaskById(id)

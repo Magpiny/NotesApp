@@ -155,7 +155,6 @@ fun EditorScreen(
                         text = "${state.wordCount} ${stringResource(R.string.words)} | ${state.charCount} ${stringResource(R.string.chars)}",
                         style = MaterialTheme.typography.labelSmall,
 
-
                         color = iconTint
                     )
                 },

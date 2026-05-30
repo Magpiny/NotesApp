@@ -18,7 +18,10 @@ data class SettingsUiState(
     val dynamicColor: Boolean = true,
     val isGridView: Boolean = true,
     val language: String = "en",
-    val fontFamily: String = "Sans"
+    val fontFamily: String = "Sans",
+    val focusDuration: Int = 25,
+    val shortBreakDuration: Int = 5,
+    val longBreakDuration: Int = 15
 )
 
 @HiltViewModel
@@ -27,13 +30,29 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        settingsRepository.themeMode,
-        settingsRepository.dynamicColor,
-        settingsRepository.isGridView,
-        settingsRepository.language,
-        settingsRepository.fontFamily
-    ) { theme, dynamic, grid, lang, font ->
-        SettingsUiState(theme, dynamic, grid, lang, font)
+        combine(
+            settingsRepository.themeMode,
+            settingsRepository.dynamicColor,
+            settingsRepository.isGridView,
+            settingsRepository.language,
+            settingsRepository.fontFamily
+        ) { theme, dynamic, grid, lang, font ->
+            listOf(theme, dynamic, grid, lang, font)
+        },
+        settingsRepository.focusDuration,
+        settingsRepository.shortBreakDuration,
+        settingsRepository.longBreakDuration
+    ) { basic, focus, short, long ->
+        SettingsUiState(
+            themeMode = basic[0] as String,
+            dynamicColor = basic[1] as Boolean,
+            isGridView = basic[2] as Boolean,
+            language = basic[3] as String,
+            fontFamily = basic[4] as String,
+            focusDuration = focus,
+            shortBreakDuration = short,
+            longBreakDuration = long
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -69,6 +88,24 @@ class SettingsViewModel @Inject constructor(
     fun setFontFamily(fontFamily: String) {
         viewModelScope.launch {
             settingsRepository.setFontFamily(fontFamily)
+        }
+    }
+
+    fun setFocusDuration(minutes: Int) {
+        viewModelScope.launch {
+            settingsRepository.setFocusDuration(minutes)
+        }
+    }
+
+    fun setShortBreakDuration(minutes: Int) {
+        viewModelScope.launch {
+            settingsRepository.setShortBreakDuration(minutes)
+        }
+    }
+
+    fun setLongBreakDuration(minutes: Int) {
+        viewModelScope.launch {
+            settingsRepository.setLongBreakDuration(minutes)
         }
     }
 }

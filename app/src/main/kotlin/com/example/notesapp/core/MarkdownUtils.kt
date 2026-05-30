@@ -9,6 +9,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.unit.sp
 
 data class MarkdownParseResult(
     val annotatedString: AnnotatedString,
@@ -40,7 +41,26 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
         val allMatches = mutableListOf<MarkdownMatch>()
         styles.forEach { style ->
             style.regex.findAll(text).forEach { match ->
-                allMatches.add(MarkdownMatch(match.range, style.style, style.tokenLength))
+                // Check if this match should be processed based on its capture groups
+                if (style.type == MarkdownType.LINK) {
+                    val labelRange = match.groups[1]?.range ?: return@forEach
+                    val urlRange = match.groups[2]?.range ?: return@forEach
+                    allMatches.add(MarkdownMatch(match.range, style, listOf(
+                        match.range.first..match.range.first, // [
+                        labelRange.last + 1..labelRange.last + 2, // ](
+                        match.range.last..match.range.last // )
+                    )))
+                } else {
+                    val contentRange = match.groups[1]?.range ?: return@forEach
+                    val markers = mutableListOf<IntRange>()
+                    if (match.range.first < contentRange.first) {
+                        markers.add(match.range.first until contentRange.first)
+                    }
+                    if (match.range.last > contentRange.last) {
+                        markers.add(contentRange.last + 1..match.range.last)
+                    }
+                    allMatches.add(MarkdownMatch(match.range, style, markers))
+                }
             }
         }
         
@@ -51,6 +71,7 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
         var lastEnd = -1
         allMatches.forEach { match ->
             if (match.range.first > lastEnd) {
+                // Ensure the match content doesn't overlap with others
                 filteredMatches.add(match)
                 lastEnd = match.range.last
             }
@@ -66,28 +87,24 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
                 currentTransformedIndex++
             }
             
-            // Map the start markers to the start of the styled text
-            repeat(match.tokenLength) {
-                originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
-            }
+            val contentStart = match.range.first
+            val contentEnd = match.range.last + 1
             
-            // Append the content of the match and style it
+            val markers = match.markers
             val startStyle = currentTransformedIndex
-            val contentStart = match.range.first + match.tokenLength
-            val contentEnd = match.range.last - match.tokenLength + 1
             
             for (i in contentStart until contentEnd) {
-                append(text[i])
-                originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
-                transformedToOriginal.add(i)
-                currentTransformedIndex++
+                val isMarker = markers.any { i in it }
+                if (isMarker) {
+                    originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
+                } else {
+                    append(text[i])
+                    originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
+                    transformedToOriginal.add(i)
+                    currentTransformedIndex++
+                }
             }
-            addStyle(match.style, startStyle, currentTransformedIndex)
-            
-            // Map the end markers to the end of the styled text
-            repeat(match.tokenLength) {
-                originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
-            }
+            addStyle(match.style.style, startStyle, currentTransformedIndex)
         }
         
         // Append remaining text
@@ -111,27 +128,51 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
     return MarkdownParseResult(annotatedString, mapping)
 }
 
+private enum class MarkdownType {
+    SPAN, BLOCK, LINK
+}
+
 private data class MarkdownMatch(
     val range: IntRange,
-    val style: SpanStyle,
-    val tokenLength: Int
+    val style: MarkdownStyle,
+    val markers: List<IntRange>
 )
 
 private data class MarkdownStyle(
     val regex: Regex,
     val style: SpanStyle,
-    val tokenLength: Int
+    val type: MarkdownType = MarkdownType.SPAN
 )
 
 private val styles = listOf(
-    MarkdownStyle(Regex("\\*\\*(.*?)\\*\\*"), SpanStyle(fontWeight = FontWeight.Bold), 2),
-    MarkdownStyle(Regex("(?<!\\*)\\*(?!\\*)(.*?)(?<!\\*)\\*(?!\\*)"), SpanStyle(fontWeight = FontWeight.Bold), 1),
-    MarkdownStyle(Regex("__(.*?)__"), SpanStyle(textDecoration = TextDecoration.Underline), 2),
-    MarkdownStyle(Regex("_(.*?)_"), SpanStyle(fontStyle = FontStyle.Italic), 1),
-    MarkdownStyle(Regex("~(.*?)~"), SpanStyle(textDecoration = TextDecoration.LineThrough), 1),
-    MarkdownStyle(Regex("`(.*?)`"), SpanStyle(fontFamily = FontFamily.Monospace, background = Color.LightGray.copy(alpha = 0.2f)), 1),
-    MarkdownStyle(Regex("- \\[ \\] (.*)"), SpanStyle(color = Color.Gray), 6),
-    MarkdownStyle(Regex("- \\[x] (.*)"), SpanStyle(color = Color.Gray, textDecoration = TextDecoration.LineThrough), 6)
+    // Headers
+    MarkdownStyle(Regex("(?m)^# (.*)"), SpanStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp), MarkdownType.BLOCK),
+    MarkdownStyle(Regex("(?m)^## (.*)"), SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp), MarkdownType.BLOCK),
+    MarkdownStyle(Regex("(?m)^### (.*)"), SpanStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp), MarkdownType.BLOCK),
+    
+    // Blockquotes
+    MarkdownStyle(Regex("(?m)^> (.*)"), SpanStyle(color = Color.Gray, fontStyle = FontStyle.Italic), MarkdownType.BLOCK),
+    
+    // Inline Styles
+    MarkdownStyle(Regex("\\*\\*(.*?)\\*\\*"), SpanStyle(fontWeight = FontWeight.Bold)),
+    MarkdownStyle(Regex("(?<!\\*)\\*(?!\\*)(.*?)(?<!\\*)\\*(?!\\*)"), SpanStyle(fontWeight = FontWeight.Bold)),
+    MarkdownStyle(Regex("__(.*?)__"), SpanStyle(textDecoration = TextDecoration.Underline)),
+    MarkdownStyle(Regex("_(.*?)_"), SpanStyle(fontStyle = FontStyle.Italic)),
+    MarkdownStyle(Regex("~(.*?)~"), SpanStyle(textDecoration = TextDecoration.LineThrough)),
+    MarkdownStyle(Regex("`(.*?)`"), SpanStyle(fontFamily = FontFamily.Monospace, background = Color.LightGray.copy(alpha = 0.2f))),
+    
+    // Links
+    MarkdownStyle(Regex("\\[(.*?)\\]\\((.*?)\\)"), SpanStyle(color = Color(0xFF2196F3), textDecoration = TextDecoration.Underline), MarkdownType.LINK),
+    
+    // Lists
+    MarkdownStyle(Regex("(?m)^[\\*\\+-] (.*)"), SpanStyle(fontWeight = FontWeight.Medium), MarkdownType.BLOCK),
+    MarkdownStyle(Regex("(?m)^\\d+\\. (.*)"), SpanStyle(fontWeight = FontWeight.Medium), MarkdownType.BLOCK),
+    
+    // Code Blocks
+    MarkdownStyle(Regex("(?s)```.*?```"), SpanStyle(fontFamily = FontFamily.Monospace, background = Color.LightGray.copy(alpha = 0.1f)), MarkdownType.BLOCK),
+    
+    // Tables (Basic detection)
+    MarkdownStyle(Regex("(?m)^\\|.*\\|$"), SpanStyle(fontFamily = FontFamily.Monospace), MarkdownType.BLOCK)
 )
 
 private fun applyAllStyles(text: String, builder: AnnotatedString.Builder) {

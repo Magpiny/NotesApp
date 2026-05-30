@@ -4,11 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notesapp.R
@@ -108,8 +112,19 @@ fun TaskEditorScreen(
                 }
             }
 
+            Text(text = "Status", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                com.example.notesapp.domain.model.TaskStatus.entries.filter { it != com.example.notesapp.domain.model.TaskStatus.CANCELLED }.forEach { status ->
+                    FilterChip(
+                        selected = state.status == status,
+                        onClick = { viewModel.onStatusChange(status) },
+                        label = { Text(status.name.replace("_", " ")) }
+                    )
+                }
+            }
+
             Text(text = stringResource(R.string.due_date), style = MaterialTheme.typography.titleMedium)
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = state.dueDate?.formatToReadableDate() ?: stringResource(R.string.none),
                     modifier = Modifier.weight(1f)
                 )
@@ -137,6 +152,48 @@ fun TaskEditorScreen(
                         onClick = { viewModel.onRecurrenceChange(pattern) },
                         label = { Text(label) }
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = "Subtasks", style = MaterialTheme.typography.titleMedium)
+            
+            var subtaskText by remember { mutableStateOf("") }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextField(
+                    value = subtaskText,
+                    onValueChange = { subtaskText = it },
+                    placeholder = { Text("Add subtask...") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                IconButton(onClick = {
+                    if (subtaskText.isNotBlank()) {
+                        viewModel.addSubtask(subtaskText)
+                        subtaskText = ""
+                    }
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Subtask")
+                }
+            }
+
+            state.subtasks.forEach { subtask ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Checkbox(
+                        checked = subtask.isCompleted,
+                        onCheckedChange = { viewModel.toggleSubtask(subtask) }
+                    )
+                    Text(
+                        text = subtask.title,
+                        modifier = Modifier.weight(1f),
+                        style = if (subtask.isCompleted) MaterialTheme.typography.bodyLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else MaterialTheme.typography.bodyLarge
+                    )
+                    IconButton(onClick = { viewModel.deleteSubtask(subtask) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete Subtask")
+                    }
                 }
             }
         }

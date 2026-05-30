@@ -1,6 +1,10 @@
 package com.example.notesapp.presentation.task
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -14,7 +18,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -140,17 +148,59 @@ fun TaskScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         itemsIndexed(state.tasks, key = { _, task -> task.id }) { _, task ->
-                            TaskItem(
-                                task = task,
-                                onToggle = { viewModel.toggleTaskCompletion(task) },
+                            SwipeableTaskItem(
                                 onDelete = { viewModel.deleteTask(task, context) },
-                                onClick = { onNavigateToTaskEditor(task.id) }
+                                content = {
+                                    TaskItem(
+                                        task = task,
+                                        onToggle = { viewModel.toggleTaskCompletion(task) },
+                                        onDelete = { viewModel.deleteTask(task, context) },
+                                        onClick = { onNavigateToTaskEditor(task.id) }
+                                    )
+                                }
                             )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeableTaskItem(
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = {
+            if (it == SwipeToDismissBoxValue.StartToEnd || it == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val color by animateColorAsState(
+                if (dismissState.targetValue != SwipeToDismissBoxValue.Settled) MaterialTheme.colorScheme.errorContainer
+                else Color.Transparent, label = "Color"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color, MaterialTheme.shapes.medium)
+                    .padding(horizontal = 24.dp),
+                contentAlignment = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onErrorContainer)
+            }
+        }
+    ) {
+        content()
     }
 }
 
@@ -344,11 +394,30 @@ fun TaskItem(
     onClick: () -> Unit
 ) {
     val isCompleted = task.status == TaskStatus.COMPLETED
+    val haptic = LocalHapticFeedback.current
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, label = "Scale")
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        try {
+                            awaitRelease()
+                        } finally {
+                            pressed = false
+                        }
+                    },
+                    onTap = { onClick() },
+                    onLongPress = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                )
+            },
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -367,7 +436,10 @@ fun TaskItem(
         ) {
             Checkbox(
                 checked = isCompleted,
-                onCheckedChange = { onToggle() },
+                onCheckedChange = { 
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onToggle() 
+                },
                 colors = CheckboxDefaults.colors(
                     checkedColor = MaterialTheme.colorScheme.primary,
                     uncheckedColor = MaterialTheme.colorScheme.outline
@@ -386,6 +458,15 @@ fun TaskItem(
                     color = if (isCompleted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
                 )
                 
+                if (task.subtasks.isNotEmpty()) {
+                    val completed = task.subtasks.count { it.isCompleted }
+                    Text(
+                        text = "$completed/${task.subtasks.size} subtasks",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+
                 if (task.dueDate != null) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {

@@ -133,6 +133,18 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun archiveNote(note: Note) {
+        viewModelScope.launch {
+            saveNoteUseCase(note.copy(isArchived = true, updatedAt = System.currentTimeMillis()))
+        }
+    }
+
+    fun deleteNote(note: Note) {
+        viewModelScope.launch {
+            moveNoteToTrashUseCase(note.id)
+        }
+    }
+
     fun toggleNoteSelection(noteId: String) {
         _selectedNoteIds.update { current ->
             if (current.contains(noteId)) current - noteId else current + noteId

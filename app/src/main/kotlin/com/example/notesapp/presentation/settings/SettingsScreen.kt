@@ -105,6 +105,52 @@ fun SettingsScreen(
                 selectedFont = state.fontFamily,
                 onFontSelected = viewModel::setFontFamily
             )
+
+            HorizontalDivider()
+
+            Text(text = "Focus Timer", style = MaterialTheme.typography.titleMedium)
+            DurationSelector(
+                label = "Focus Duration",
+                minutes = state.focusDuration,
+                options = listOf(15, 20, 25, 30, 45, 60),
+                onDurationSelected = viewModel::setFocusDuration
+            )
+            DurationSelector(
+                label = "Short Break",
+                minutes = state.shortBreakDuration,
+                options = listOf(3, 5, 10, 15),
+                onDurationSelected = viewModel::setShortBreakDuration
+            )
+            DurationSelector(
+                label = "Long Break",
+                minutes = state.longBreakDuration,
+                options = listOf(10, 15, 20, 30),
+                onDurationSelected = viewModel::setLongBreakDuration
+            )
+        }
+    }
+}
+
+@Composable
+fun DurationSelector(
+    label: String,
+    minutes: Int,
+    options: List<Int>,
+    onDurationSelected: (Int) -> Unit
+) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(text = "$label: $minutes min", style = MaterialTheme.typography.bodyMedium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) {
+            options.forEach { opt ->
+                FilterChip(
+                    selected = minutes == opt,
+                    onClick = { onDurationSelected(opt) },
+                    label = { Text(opt.toString()) }
+                )
+            }
         }
     }
 }

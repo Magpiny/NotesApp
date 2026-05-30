@@ -21,6 +21,11 @@ interface SettingsRepository {
     /** Flow representing the current font family (e.g., "Sans", "Serif", "Mono"). */
     val fontFamily: Flow<String>
 
+    /** Focus timer durations in minutes. */
+    val focusDuration: Flow<Int>
+    val shortBreakDuration: Flow<Int>
+    val longBreakDuration: Flow<Int>
+
     /** Updates the theme mode. */
     suspend fun setThemeMode(mode: String)
 
@@ -35,4 +40,9 @@ interface SettingsRepository {
 
     /** Updates the font family. */
     suspend fun setFontFamily(fontFamily: String)
+
+    /** Updates focus durations. */
+    suspend fun setFocusDuration(minutes: Int)
+    suspend fun setShortBreakDuration(minutes: Int)
+    suspend fun setLongBreakDuration(minutes: Int)
 }

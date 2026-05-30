@@ -59,7 +59,9 @@ fun ArchiveScreen(
                     NoteCard(
                         note = note,
                         onClick = { onNavigateToEditor(note.id) },
-                        onCopy = { viewModel.copyNote(note) }
+                        onCopy = { viewModel.copyNote(note) },
+                        onArchive = { },
+                        onDelete = { }
                     )
                 }
             }

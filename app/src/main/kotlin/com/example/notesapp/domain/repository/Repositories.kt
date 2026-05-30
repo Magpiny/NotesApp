@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 interface NoteRepository {
     fun getActiveNotes(): Flow<List<Note>>
     fun getArchivedNotes(): Flow<List<Note>>
+    fun getTrashedNotes(): Flow<List<Note>>
     fun getLockedNotes(): Flow<List<Note>>
     fun searchNotes(query: String): Flow<List<Note>>
     suspend fun getNoteById(id: String): Result<Note>

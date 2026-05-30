@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesapp.data.db.FocusSessionEntity
 import com.example.notesapp.data.db.TaskDao
+import com.example.notesapp.domain.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -22,7 +23,8 @@ data class FocusUiState(
 
 @HiltViewModel
 class FocusViewModel @Inject constructor(
-    private val taskDao: TaskDao
+    private val taskDao: TaskDao,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FocusUiState())
@@ -33,6 +35,20 @@ class FocusViewModel @Inject constructor(
 
     init {
         loadTodaySessionCount()
+        observeDurations()
+    }
+
+    private fun observeDurations() {
+        combine(
+            settingsRepository.focusDuration,
+            settingsRepository.shortBreakDuration,
+            settingsRepository.longBreakDuration
+        ) { focus, short, _ ->
+            if (!_uiState.value.isRunning) {
+                val initialTime = if (_uiState.value.isBreak) short * 60 * 1000L else focus * 60 * 1000L
+                _uiState.update { it.copy(remainingTime = initialTime) }
+            }
+        }.launchIn(viewModelScope)
     }
 
     private fun loadTodaySessionCount() {
@@ -81,17 +97,25 @@ class FocusViewModel @Inject constructor(
 
     fun resetTimer() {
         pauseTimer()
-        val initialTime = if (_uiState.value.isBreak) 5 * 60 * 1000L else 25 * 60 * 1000L
-        _uiState.update { it.copy(remainingTime = initialTime) }
+        viewModelScope.launch {
+            val focus = settingsRepository.focusDuration.first()
+            val short = settingsRepository.shortBreakDuration.first()
+            val initialTime = if (_uiState.value.isBreak) short * 60 * 1000L else focus * 60 * 1000L
+            _uiState.update { it.copy(remainingTime = initialTime) }
+        }
     }
 
     private fun onTimerFinished() {
         pauseTimer()
         viewModelScope.launch {
+            val focus = settingsRepository.focusDuration.first()
+            val short = settingsRepository.shortBreakDuration.first()
+            val duration = if (_uiState.value.isBreak) short * 60 * 1000L else focus * 60 * 1000L
+            
             taskDao.insertFocusSession(
                 FocusSessionEntity(
-                    startTime = System.currentTimeMillis() - if (_uiState.value.isBreak) 5 * 60 * 1000L else 25 * 60 * 1000L,
-                    duration = if (_uiState.value.isBreak) 5 * 60 * 1000L else 25 * 60 * 1000L,
+                    startTime = System.currentTimeMillis() - duration,
+                    duration = duration,
                     isBreak = _uiState.value.isBreak
                 )
             )
@@ -100,15 +124,19 @@ class FocusViewModel @Inject constructor(
     }
 
     fun startNextSession() {
-        _uiState.update { 
-            val wasBreak = it.isBreak
-            it.copy(
-                showCompletionDialog = false,
-                isBreak = !wasBreak,
-                remainingTime = if (!wasBreak) 5 * 60 * 1000L else 25 * 60 * 1000L
-            )
+        viewModelScope.launch {
+            val focus = settingsRepository.focusDuration.first()
+            val short = settingsRepository.shortBreakDuration.first()
+            _uiState.update { 
+                val wasBreak = it.isBreak
+                it.copy(
+                    showCompletionDialog = false,
+                    isBreak = !wasBreak,
+                    remainingTime = if (!wasBreak) short * 60 * 1000L else focus * 60 * 1000L
+                )
+            }
+            startTimer()
         }
-        startTimer()
     }
 
     fun dismissDialog() {

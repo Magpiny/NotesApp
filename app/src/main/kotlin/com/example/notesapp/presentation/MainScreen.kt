@@ -1,5 +1,6 @@
 package com.example.notesapp.presentation
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +32,7 @@ import com.example.notesapp.presentation.task.TaskEditorScreen
 import com.example.notesapp.presentation.task.TaskScreen
 import com.example.notesapp.presentation.vault.VaultScreen
 import com.example.notesapp.presentation.focus.FocusScreen
+import com.example.notesapp.presentation.trash.TrashScreen
 
 /**
  * Root scaffold that holds the BottomNavigationBar and hosts the main NavGraph.
@@ -111,7 +113,11 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
         NavHost(
             navController = navController,
             startDestination = "home",
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = { fadeIn() + slideInHorizontally { it } },
+            exitTransition = { fadeOut() + slideOutHorizontally { -it } },
+            popEnterTransition = { fadeIn() + slideInHorizontally { -it } },
+            popExitTransition = { fadeOut() + slideOutHorizontally { it } }
         ) {
             composable("home") {
                 HomeScreen(
@@ -120,7 +126,8 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
                         navController.navigate(route)
                     },
                     onNavigateToSettings = { navController.navigate("settings") },
-                    onNavigateToArchive = { navController.navigate("archive") }
+                    onNavigateToArchive = { navController.navigate("archive") },
+                    onNavigateToTrash = { navController.navigate("trash") }
                 )
             }
             composable("vault") {
@@ -151,7 +158,8 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
             composable("search") {
                 SearchScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToEditor = { id -> navController.navigate("editor?noteId=$id") }
+                    onNavigateToEditor = { id -> navController.navigate("editor?noteId=$id") },
+                    onNavigateToTaskEditor = { id -> navController.navigate("task_editor?taskId=$id") }
                 )
             }
             composable("archive") {
@@ -162,6 +170,9 @@ fun MainScreen(biometricManager: BiometricAuthManager) {
             }
             composable("settings") {
                 SettingsScreen(onNavigateBack = { navController.popBackStack() })
+            }
+            composable("trash") {
+                TrashScreen(onNavigateBack = { navController.popBackStack() })
             }
             composable(
                 route = "task_editor?taskId={taskId}",

@@ -55,8 +55,15 @@ class TaskViewModel @Inject constructor(
         getAllTasksUseCase().onStart { emit(emptyList()) },
         _isKanbanView
     ) { tasks, isKanban ->
-        val activeTasks = tasks.filter { it.status != TaskStatus.COMPLETED && it.status != TaskStatus.CANCELLED }
-        val total = tasks.size
+        // In List View, we hide COMPLETED tasks to keep it tidy.
+        // In Kanban View, we show them in the "Completed" column.
+        val filteredTasks = if (isKanban) {
+            tasks.filter { it.status != TaskStatus.CANCELLED }
+        } else {
+            tasks.filter { it.status != TaskStatus.COMPLETED && it.status != TaskStatus.CANCELLED }
+        }
+        
+        val total = tasks.count { it.status != TaskStatus.CANCELLED }
         val completedCount = tasks.count { it.status == TaskStatus.COMPLETED }
         val rate = if (total > 0) completedCount.toFloat() / total else 0f
         
@@ -66,7 +73,7 @@ class TaskViewModel @Inject constructor(
         }
 
         TaskUiState(
-            tasks = activeTasks,
+            tasks = filteredTasks,
             isKanbanView = isKanban,
             completionRate = rate,
             completedLast7Days = last7Days,

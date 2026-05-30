@@ -71,4 +71,12 @@ interface TaskDao {
         WHERE task_note_cross_ref.noteId = :noteId
     """)
     fun getTasksForNote(noteId: String): Flow<List<TaskEntity>>
+
+    @Query("""
+        SELECT * FROM tasks 
+        WHERE (title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%')
+        AND status != 'CANCELLED'
+        ORDER BY updatedAt DESC
+    """)
+    fun searchTasks(query: String): Flow<List<TaskEntity>>
 }

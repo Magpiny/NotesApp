@@ -28,6 +28,10 @@ class NoteRepositoryImpl @Inject constructor(
         return dao.getArchivedNotes().map { list -> list.map { it.toDomain() } }
     }
 
+    override fun getTrashedNotes(): Flow<List<Note>> {
+        return dao.getTrashedNotes().map { list -> list.map { it.toDomain() } }
+    }
+
     override fun getLockedNotes(): Flow<List<Note>> {
         return dao.getLockedNotes().map { list -> list.map { it.toDomain() } }
     }

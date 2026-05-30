@@ -3,6 +3,7 @@ package com.example.notesapp.data.repository
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.notesapp.domain.repository.SettingsRepository
@@ -27,6 +28,9 @@ class SettingsRepositoryImpl @Inject constructor(
         val IS_GRID_VIEW = booleanPreferencesKey("is_grid_view")
         val LANGUAGE = stringPreferencesKey("language")
         val FONT_FAMILY = stringPreferencesKey("font_family")
+        val FOCUS_DURATION = intPreferencesKey("focus_duration")
+        val SHORT_BREAK_DURATION = intPreferencesKey("short_break_duration")
+        val LONG_BREAK_DURATION = intPreferencesKey("long_break_duration")
     }
 
     override val themeMode: Flow<String> = context.dataStore.data
@@ -74,6 +78,33 @@ class SettingsRepositoryImpl @Inject constructor(
             preferences[PreferencesKeys.FONT_FAMILY] ?: "Sans"
         }
 
+    override val focusDuration: Flow<Int> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(androidx.datastore.preferences.core.emptyPreferences())
+            else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.FOCUS_DURATION] ?: 25
+        }
+
+    override val shortBreakDuration: Flow<Int> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(androidx.datastore.preferences.core.emptyPreferences())
+            else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.SHORT_BREAK_DURATION] ?: 5
+        }
+
+    override val longBreakDuration: Flow<Int> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(androidx.datastore.preferences.core.emptyPreferences())
+            else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.LONG_BREAK_DURATION] ?: 15
+        }
+
     override suspend fun setThemeMode(mode: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_MODE] = mode
@@ -101,6 +132,24 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setFontFamily(fontFamily: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.FONT_FAMILY] = fontFamily
+        }
+    }
+
+    override suspend fun setFocusDuration(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.FOCUS_DURATION] = minutes
+        }
+    }
+
+    override suspend fun setShortBreakDuration(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHORT_BREAK_DURATION] = minutes
+        }
+    }
+
+    override suspend fun setLongBreakDuration(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LONG_BREAK_DURATION] = minutes
         }
     }
 }
