@@ -1,6 +1,8 @@
 package com.example.notesapp.presentation.task
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -31,6 +33,7 @@ fun TaskEditorScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scrollState = rememberScrollState()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -82,8 +85,9 @@ fun TaskEditorScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             TextField(
@@ -97,7 +101,7 @@ fun TaskEditorScreen(
                 value = state.description,
                 onValueChange = viewModel::onDescriptionChange,
                 label = { Text(stringResource(R.string.description)) },
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                 minLines = 3
             )
 
@@ -178,23 +182,28 @@ fun TaskEditorScreen(
             }
 
             state.subtasks.forEach { subtask ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Checkbox(
-                        checked = subtask.isCompleted,
-                        onCheckedChange = { viewModel.toggleSubtask(subtask) }
-                    )
-                    Text(
-                        text = subtask.title,
-                        modifier = Modifier.weight(1f),
-                        style = if (subtask.isCompleted) MaterialTheme.typography.bodyLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) else MaterialTheme.typography.bodyLarge
-                    )
-                    IconButton(onClick = { viewModel.deleteSubtask(subtask) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete Subtask")
-                    }
-                }
+                ListItem(
+                    headlineContent = { 
+                        Text(
+                            text = subtask.title,
+                            style = if (subtask.isCompleted) 
+                                MaterialTheme.typography.bodyLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) 
+                            else MaterialTheme.typography.bodyLarge
+                        )
+                    },
+                    leadingContent = {
+                        Checkbox(
+                            checked = subtask.isCompleted,
+                            onCheckedChange = { viewModel.toggleSubtask(subtask) }
+                        )
+                    },
+                    trailingContent = {
+                        IconButton(onClick = { viewModel.deleteSubtask(subtask) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Subtask")
+                        }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                )
             }
         }
     }

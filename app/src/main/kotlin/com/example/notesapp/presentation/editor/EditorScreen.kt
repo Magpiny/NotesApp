@@ -88,9 +88,8 @@ fun EditorScreen(
 
     val backgroundColor = Color(state.color.toInt())
     val contentColor = backgroundColor.calculateOnColor()
-    // Specifically make icons "beautifully bright" (White) as requested, 
-    // while keeping text color (contentColor) as it was for readability.
-    val iconTint = Color.White
+    // Dynamic icon tint based on background luminance for visibility on White backgrounds.
+    val iconTint = if (backgroundColor.calculateOnColor() == Color.White) Color.White else Color.Black
 
     Scaffold(
         containerColor = backgroundColor,

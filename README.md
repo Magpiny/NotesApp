@@ -25,6 +25,20 @@ This major update brings Notafo its own unique identity through advanced UI poli
 - **Refined Task Logic**: Automatic filtering of completed items to keep your active list focused.
 - **Beautifully Bright Icons**: Consistent brilliant white icons in the editor for a professional look.
 
+## 📸 Visual Tour (v2.4.1)
+
+````carousel
+![Home Screen - Fluid Material 3 Layout](home_screen.png)
+<!-- slide -->
+![Kanban Board - Visual Task Management](kanban_board.png)
+<!-- slide -->
+![Advanced Editor - Real-time Markdown & Bright Icons](markdown_editor.png)
+<!-- slide -->
+![Productivity Search - Unified Results](unified_search.png)
+<!-- slide -->
+![Focus Timer - Personalized Sessions](focus_timer.png)
+````
+
 ## 🛠️ Technical Stack
 
 - **Language:** Kotlin 2.3.21 (K2 Compiler)
