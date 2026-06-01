@@ -43,8 +43,11 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
             style.regex.findAll(text).forEach { match ->
                 // Check if this match should be processed based on its capture groups
                 if (style.type == MarkdownType.LINK) {
-                    val labelRange = match.groups[1]?.range ?: return@forEach
-                    val urlRange = match.groups[2]?.range ?: return@forEach
+                    val labelGroup = if (match.groups.size > 1) match.groups[1] else null
+                    val urlGroup = if (match.groups.size > 2) match.groups[2] else null
+                    
+                    val labelRange = labelGroup?.range ?: return@forEach
+                    val urlRange = urlGroup?.range ?: return@forEach
                     // For links, we hide [ ] and (url)
                     allMatches.add(MarkdownMatch(match.range, style, listOf(
                         match.range.first..match.range.first, // [
@@ -52,7 +55,8 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
                         labelRange.last + 3..match.range.last // url)
                     )))
                 } else {
-                    val contentRange = match.groups[1]?.range ?: return@forEach
+                    val contentGroup = if (match.groups.size > 1) match.groups[1] else null
+                    val contentRange = contentGroup?.range ?: match.range
                     val markers = mutableListOf<IntRange>()
                     
                     // Only hide markers if explicitly requested for this style
@@ -102,7 +106,16 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
             for (i in contentStart until contentEnd) {
                 val isMarker = markers.any { i in it }
                 if (isMarker) {
-                    originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
+                    // For unordered list markers, replace with bullet point
+                    if (match.style.type == MarkdownType.LIST_UNORDERED) {
+                        append("•")
+                        originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
+                        transformedToOriginal.add(i)
+                        currentTransformedIndex++
+                    } else {
+                        // Skip markers for other types
+                        originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
+                    }
                 } else {
                     append(text[i])
                     originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
@@ -135,7 +148,7 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
 }
 
 private enum class MarkdownType {
-    SPAN, BLOCK, LINK
+    SPAN, BLOCK, LINK, LIST_UNORDERED
 }
 
 private data class MarkdownMatch(
@@ -171,15 +184,15 @@ private val styles = listOf(
     // Links (Hide markers and URL, only show label)
     MarkdownStyle(Regex("\\[(.*?)\\]\\((.*?)\\)"), SpanStyle(color = Color(0xFF2196F3), textDecoration = TextDecoration.Underline), MarkdownType.LINK),
     
-    // Lists (Show the * or 1. marker)
-    MarkdownStyle(Regex("(?m)^[*\\+-] (.*)"), SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF006064)), MarkdownType.BLOCK, hideMarkers = false),
+    // Lists
+    MarkdownStyle(Regex("(?m)^([*\\+-]) (.*)"), SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF006064)), MarkdownType.LIST_UNORDERED, hideMarkers = true),
     MarkdownStyle(Regex("(?m)^\\d+\\. (.*)"), SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF006064)), MarkdownType.BLOCK, hideMarkers = false),
     
     // Code Blocks
-    MarkdownStyle(Regex("(?s)```.*?```"), SpanStyle(fontFamily = FontFamily.Monospace, background = Color.LightGray.copy(alpha = 0.1f)), MarkdownType.BLOCK, hideMarkers = false),
+    MarkdownStyle(Regex("(?s)(```.*?```)"), SpanStyle(fontFamily = FontFamily.Monospace, background = Color.LightGray.copy(alpha = 0.1f)), MarkdownType.BLOCK, hideMarkers = false),
     
     // Tables (Basic detection)
-    MarkdownStyle(Regex("(?m)^\\|.*\\|$"), SpanStyle(fontFamily = FontFamily.Monospace), MarkdownType.BLOCK, hideMarkers = false)
+    MarkdownStyle(Regex("(?m)^(\\|.*\\|)$"), SpanStyle(fontFamily = FontFamily.Monospace), MarkdownType.BLOCK, hideMarkers = false)
 )
 
 private fun applyAllStyles(text: String, builder: AnnotatedString.Builder) {

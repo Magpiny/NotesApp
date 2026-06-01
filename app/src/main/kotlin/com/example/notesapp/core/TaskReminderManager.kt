@@ -18,16 +18,29 @@ class TaskReminderManager @Inject constructor(
 
     fun scheduleReminder(task: Task) {
         val dueDate = task.dueDate ?: return
-        if (dueDate <= System.currentTimeMillis()) return
+        
+        // Schedule 10 minutes before
+        scheduleAlarm(task, dueDate - 10 * 60 * 1000, 10)
+        // Schedule 5 minutes before
+        scheduleAlarm(task, dueDate - 5 * 60 * 1000, 5)
+        // Schedule at exact time
+        scheduleAlarm(task, dueDate, 0)
+    }
+
+    private fun scheduleAlarm(task: Task, triggerTime: Long, minutesBefore: Int) {
+        if (triggerTime <= System.currentTimeMillis()) return
 
         val intent = Intent(context, ReminderReceiver::class.java).apply {
             putExtra("taskId", task.id)
             putExtra("taskTitle", task.title)
+            putExtra("minutesBefore", minutesBefore)
         }
 
+        // Use a unique request code for each reminder type to avoid overwriting
+        val requestCode = task.id.hashCode() + minutesBefore
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            task.id.hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -36,33 +49,36 @@ class TaskReminderManager @Inject constructor(
             if (alarmManager.canScheduleExactAlarms()) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    dueDate,
+                    triggerTime,
                     pendingIntent
                 )
             } else {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    dueDate,
+                    triggerTime,
                     pendingIntent
                 )
             }
         } else {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
-                dueDate,
+                triggerTime,
                 pendingIntent
             )
         }
     }
 
     fun cancelReminder(taskId: String) {
-        val intent = Intent(context, ReminderReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            taskId.hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.cancel(pendingIntent)
+        listOf(0, 5, 10).forEach { minutesBefore ->
+            val intent = Intent(context, ReminderReceiver::class.java)
+            val requestCode = taskId.hashCode() + minutesBefore
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(pendingIntent)
+        }
     }
 }

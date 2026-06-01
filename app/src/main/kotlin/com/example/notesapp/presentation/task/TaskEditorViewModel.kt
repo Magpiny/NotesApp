@@ -55,6 +55,7 @@ class TaskEditorViewModel @Inject constructor(
     init {
         loadProjects()
         loadTask()
+        loadSubtasks(_uiState.value.id)
     }
 
     private fun loadProjects() {
