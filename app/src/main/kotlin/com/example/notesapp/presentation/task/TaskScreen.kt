@@ -175,14 +175,14 @@ fun SwipeableTaskItem(
     onDelete: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = {
-            if (it == SwipeToDismissBoxValue.StartToEnd || it == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                true
-            } else false
+    val dismissState = rememberSwipeToDismissBoxState()
+    
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+            onDelete()
+            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
         }
-    )
+    }
 
     SwipeToDismissBox(
         state = dismissState,

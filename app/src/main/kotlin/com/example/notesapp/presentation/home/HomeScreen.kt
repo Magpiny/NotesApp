@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.SwipeToDismissBoxValue.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,7 +106,7 @@ fun HomeScreen(
                             Icon(Icons.Default.Delete, contentDescription = "Trash")
                         }
                         IconButton(onClick = onNavigateToArchive) {
-                            Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive))
+                            Icon(Icons.Default.Archive, contentDescription = "Archive")
                         }
                         IconButton(onClick = viewModel::toggleLayout) {
                             Icon(
@@ -133,8 +134,6 @@ fun HomeScreen(
                     onLabelSelected = viewModel::onLabelSelected
                 )
             }
-            
-            // ... rest of the list logic
 
             if (state.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -210,21 +209,21 @@ fun SwipeableNoteCard(
     onDelete: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = {
-            when (it) {
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    onDelete()
-                    true
-                }
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onArchive()
-                    true
-                }
-                else -> false
+    val dismissState = rememberSwipeToDismissBoxState()
+    
+    LaunchedEffect(dismissState.currentValue) {
+        when (dismissState.currentValue) {
+            StartToEnd -> {
+                onDelete()
+                dismissState.snapTo(Settled)
             }
+            EndToStart -> {
+                onArchive()
+                dismissState.snapTo(Settled)
+            }
+            else -> {}
         }
-    )
+    }
 
     SwipeToDismissBox(
         state = dismissState,
@@ -232,9 +231,9 @@ fun SwipeableNoteCard(
             val direction = dismissState.dismissDirection
             val color by animateColorAsState(
                 when (dismissState.targetValue) {
-                    SwipeToDismissBoxValue.Settled -> Color.Transparent
-                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.errorContainer
-                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.secondaryContainer
+                    Settled -> Color.Transparent
+                    StartToEnd -> MaterialTheme.colorScheme.errorContainer
+                    EndToStart -> MaterialTheme.colorScheme.secondaryContainer
                 }, label = "Color"
             )
             
@@ -243,11 +242,11 @@ fun SwipeableNoteCard(
                     .fillMaxSize()
                     .background(color, MaterialTheme.shapes.large)
                     .padding(horizontal = 24.dp),
-                contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+                contentAlignment = if (direction == StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
             ) {
-                if (direction == SwipeToDismissBoxValue.StartToEnd) {
+                if (direction == StartToEnd) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onErrorContainer)
-                } else if (direction == SwipeToDismissBoxValue.EndToStart) {
+                } else if (direction == EndToStart) {
                     Icon(Icons.Default.Archive, contentDescription = "Archive", tint = MaterialTheme.colorScheme.onSecondaryContainer)
                 }
             }

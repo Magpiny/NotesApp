@@ -36,24 +36,30 @@ fun SearchScreen(
 
     Box(Modifier.fillMaxSize()) {
         SearchBar(
-            query = query,
-            onQueryChange = viewModel::onQueryChange,
-            onSearch = { active = false },
-            active = active,
-            onActiveChange = { active = it },
-            placeholder = { Text("Search notes & tasks...") },
-            leadingIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
+            inputField = {
+                SearchBarDefaults.InputField(
+                    query = query,
+                    onQueryChange = viewModel::onQueryChange,
+                    onSearch = { active = false },
+                    expanded = active,
+                    onExpandedChange = { active = it },
+                    placeholder = { Text("Search notes & tasks...") },
+                    leadingIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
+                )
             },
-            trailingIcon = {
-                if (query.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.onQueryChange("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear")
-                    }
-                }
-            },
+            expanded = active,
+            onExpandedChange = { active = it },
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()

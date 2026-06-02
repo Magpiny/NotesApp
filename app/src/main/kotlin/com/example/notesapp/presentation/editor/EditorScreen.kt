@@ -11,6 +11,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,7 +32,11 @@ import com.example.notesapp.core.SoundUtils
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownTypography
 import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.compose.components.markdownComponents
+import com.mikepenz.markdown.compose.elements.highlightedCodeBlock
+import com.mikepenz.markdown.compose.elements.highlightedCodeFence
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.verticalScroll
 
 /**
@@ -47,6 +54,15 @@ fun EditorScreen(
     val (showDeleteDialog, setShowDeleteDialog) = remember { mutableStateOf(false) }
     var isPreviewMode by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+
+    var contentFieldValue by remember { mutableStateOf(TextFieldValue(state.content)) }
+
+    // Sync state content to field value only when state changes externally (e.g. undo/redo)
+    LaunchedEffect(state.content) {
+        if (contentFieldValue.text != state.content) {
+            contentFieldValue = contentFieldValue.copy(text = state.content)
+        }
+    }
 
     BackHandler {
         viewModel.saveAndExit()
@@ -248,13 +264,20 @@ fun EditorScreen(
                             h3 = MaterialTheme.typography.titleMedium.copy(color = contentColor),
                             ordered = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
                             bullet = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
+                        ),
+                        components = markdownComponents(
+                            codeBlock = highlightedCodeBlock,
+                            codeFence = highlightedCodeFence
                         )
                     )
                 }
             } else {
                 TextField(
-                    value = state.content,
-                    onValueChange = viewModel::onContentChange,
+                    value = contentFieldValue,
+                    onValueChange = {
+                        contentFieldValue = it
+                        viewModel.onContentChange(it.text)
+                    },
                     placeholder = { 
                         Text(
                             stringResource(R.string.note_content),
@@ -273,6 +296,67 @@ fun EditorScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Enter) {
+                                val text = contentFieldValue.text
+                                val selection = contentFieldValue.selection
+                                if (selection.collapsed) {
+                                    val cursorPosition = selection.start
+                                    val lineStart = text.lastIndexOf('\n', cursorPosition - 1) + 1
+                                    val currentLine = text.substring(lineStart, cursorPosition)
+                                    
+                                    val unorderedMatch = Regex("^([*+\\-]) (.*)").find(currentLine)
+                                    val orderedMatch = Regex("^(\\d+)\\. (.*)").find(currentLine)
+                                    
+                                    if (unorderedMatch != null) {
+                                        val marker = unorderedMatch.groupValues[1]
+                                        val content = unorderedMatch.groupValues[2]
+                                        if (content.isBlank()) {
+                                            // Empty list item, clear the line
+                                            val newText = text.removeRange(lineStart, cursorPosition)
+                                            contentFieldValue = contentFieldValue.copy(
+                                                text = newText,
+                                                selection = TextRange(lineStart)
+                                            )
+                                            viewModel.onContentChange(newText)
+                                            return@onKeyEvent true
+                                        } else {
+                                            val insertText = "\n$marker "
+                                            val newText = text.replaceRange(cursorPosition, cursorPosition, insertText)
+                                            contentFieldValue = contentFieldValue.copy(
+                                                text = newText,
+                                                selection = TextRange(cursorPosition + insertText.length)
+                                            )
+                                            viewModel.onContentChange(newText)
+                                            return@onKeyEvent true
+                                        }
+                                    } else if (orderedMatch != null) {
+                                        val number = orderedMatch.groupValues[1].toInt()
+                                        val content = orderedMatch.groupValues[2]
+                                        if (content.isBlank()) {
+                                            // Empty list item, clear the line
+                                            val newText = text.removeRange(lineStart, cursorPosition)
+                                            contentFieldValue = contentFieldValue.copy(
+                                                text = newText,
+                                                selection = TextRange(lineStart)
+                                            )
+                                            viewModel.onContentChange(newText)
+                                            return@onKeyEvent true
+                                        } else {
+                                            val insertText = "\n${number + 1}. "
+                                            val newText = text.replaceRange(cursorPosition, cursorPosition, insertText)
+                                            contentFieldValue = contentFieldValue.copy(
+                                                text = newText,
+                                                selection = TextRange(cursorPosition + insertText.length)
+                                            )
+                                            viewModel.onContentChange(newText)
+                                            return@onKeyEvent true
+                                        }
+                                    }
+                                }
+                            }
+                            false
+                        }
                 )
             }
         }

@@ -2,7 +2,6 @@ package com.example.notesapp
 
 import android.Manifest
 import android.app.AlarmManager
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -34,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var biometricManager: BiometricAuthManager
 
     private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission(),
     ) { _: Boolean -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +47,7 @@ class MainActivity : AppCompatActivity() {
             val themeMode by settingsRepository.themeMode.collectAsStateWithLifecycle(initialValue = "System")
             val dynamicColor by settingsRepository.dynamicColor.collectAsStateWithLifecycle(initialValue = true)
             val language by settingsRepository.language.collectAsStateWithLifecycle(
-                initialValue = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                initialValue = AppCompatDelegate.getApplicationLocales().toLanguageTags(),
             )
             val fontFamily by settingsRepository.fontFamily.collectAsStateWithLifecycle(initialValue = "Sans")
 
@@ -70,7 +69,7 @@ class MainActivity : AppCompatActivity() {
             NotesAppTheme(
                 useDarkTheme = useDarkTheme,
                 useDynamicColor = dynamicColor,
-                fontFamilyName = fontFamily
+                fontFamilyName = fontFamily,
             ) {
                 MainScreen(biometricManager = biometricManager)
             }
@@ -79,7 +78,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkExactAlarmPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
             if (!alarmManager.canScheduleExactAlarms()) {
                 val intent = Intent().apply {
                     action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM

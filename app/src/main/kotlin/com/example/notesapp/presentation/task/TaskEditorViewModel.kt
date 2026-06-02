@@ -25,7 +25,7 @@ data class TaskEditorUiState(
     val labels: List<String> = emptyList(),
     val projects: List<Project> = emptyList(),
     val subtasks: List<Subtask> = emptyList(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
 )
 
 sealed interface TaskEditorUiEvent {
@@ -42,7 +42,7 @@ class TaskEditorViewModel @Inject constructor(
     private val getSubtasksUseCase: GetSubtasksUseCase,
     private val saveSubtaskUseCase: SaveSubtaskUseCase,
     private val deleteSubtaskUseCase: DeleteSubtaskUseCase,
-    private val reminderManager: TaskReminderManager
+    private val reminderManager: TaskReminderManager,
 ) : ViewModel() {
 
     private val taskId: String? = savedStateHandle["taskId"]
@@ -68,7 +68,7 @@ class TaskEditorViewModel @Inject constructor(
     }
 
     private fun loadTask() {
-        if (taskId != null && taskId.isNotBlank()) {
+        if (!taskId.isNullOrBlank()) {
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true) }
                 getTaskByIdUseCase(taskId).onSuccess { task ->
@@ -83,7 +83,7 @@ class TaskEditorViewModel @Inject constructor(
                             recurrencePattern = task.recurrencePattern,
                             projectId = task.projectId,
                             labels = task.labels,
-                            isLoading = false
+                            isLoading = false,
                         )
                     }
                     loadSubtasks(task.id)
@@ -120,7 +120,7 @@ class TaskEditorViewModel @Inject constructor(
                 createdAt = System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
                 recurrencePattern = state.recurrencePattern,
-                labels = state.labels
+                labels = state.labels,
             )
             saveTaskUseCase(currentTask)
 
@@ -129,7 +129,7 @@ class TaskEditorViewModel @Inject constructor(
                 taskId = state.id,
                 title = title,
                 isCompleted = false,
-                position = state.subtasks.size
+                position = state.subtasks.size,
             )
             saveSubtaskUseCase(subtask)
         }
@@ -195,7 +195,7 @@ class TaskEditorViewModel @Inject constructor(
                 createdAt = System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
                 recurrencePattern = state.recurrencePattern,
-                labels = state.labels
+                labels = state.labels,
             )
 
             saveTaskUseCase(task).onSuccess {

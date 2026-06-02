@@ -17,7 +17,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class FileRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
 ) : FileRepository {
 
     private val jsonFormat = Json {

@@ -11,7 +11,7 @@ import javax.inject.Singleton
 
 @Singleton
 class BiometricAuthManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
 ) {
     fun isBiometricAvailable(): Boolean {
         val biometricManager = BiometricManager.from(context)
