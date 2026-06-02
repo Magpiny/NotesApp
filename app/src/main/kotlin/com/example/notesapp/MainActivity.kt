@@ -1,7 +1,13 @@
 package com.example.notesapp
 
 import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        checkExactAlarmPermission()
 
         setContent {
             val themeMode by settingsRepository.themeMode.collectAsStateWithLifecycle(initialValue = "System")
@@ -66,6 +73,19 @@ class MainActivity : AppCompatActivity() {
                 fontFamilyName = fontFamily
             ) {
                 MainScreen(biometricManager = biometricManager)
+            }
+        }
+    }
+
+    private fun checkExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                val intent = Intent().apply {
+                    action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                    data = Uri.fromParts("package", packageName, null)
+                }
+                startActivity(intent)
             }
         }
     }

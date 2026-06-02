@@ -31,13 +31,15 @@ class TaskReminderManager @Inject constructor(
         if (triggerTime <= System.currentTimeMillis()) return
 
         val intent = Intent(context, ReminderReceiver::class.java).apply {
+            action = "com.example.notesapp.TASK_REMINDER" // Unique action
             putExtra("taskId", task.id)
             putExtra("taskTitle", task.title)
             putExtra("minutesBefore", minutesBefore)
         }
 
-        // Use a unique request code for each reminder type to avoid overwriting
-        val requestCode = task.id.hashCode() + minutesBefore
+        // Use a more robust unique request code for each task and its 3 reminder stages
+        val requestCode = generateRequestCode(task.id, minutesBefore)
+        
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             requestCode,
@@ -47,11 +49,17 @@ class TaskReminderManager @Inject constructor(
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerTime,
-                    pendingIntent
-                )
+                if (minutesBefore == 0) {
+                    // Use setAlarmClock for the final reminder - highest priority and visible to user
+                    val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, pendingIntent)
+                    alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerTime,
+                        pendingIntent
+                    )
+                }
             } else {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
@@ -70,8 +78,10 @@ class TaskReminderManager @Inject constructor(
 
     fun cancelReminder(taskId: String) {
         listOf(0, 5, 10).forEach { minutesBefore ->
-            val intent = Intent(context, ReminderReceiver::class.java)
-            val requestCode = taskId.hashCode() + minutesBefore
+            val intent = Intent(context, ReminderReceiver::class.java).apply {
+                action = "com.example.notesapp.TASK_REMINDER"
+            }
+            val requestCode = generateRequestCode(taskId, minutesBefore)
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
                 requestCode,
@@ -80,5 +90,10 @@ class TaskReminderManager @Inject constructor(
             )
             alarmManager.cancel(pendingIntent)
         }
+    }
+
+    private fun generateRequestCode(taskId: String, minutesBefore: Int): Int {
+        //taskId is a UUID string. Use a consistent hash and combine with minutesBefore
+        return (taskId.hashCode() * 31) + minutesBefore
     }
 }

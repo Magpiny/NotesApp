@@ -32,7 +32,12 @@
 
         <receiver
             android:name=".core.ReminderReceiver"
-            android:exported="false" />
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.example.notesapp.TASK_REMINDER" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

@@ -26,6 +26,11 @@ import com.example.notesapp.core.dimensions
 import com.example.notesapp.core.shareNote
 import com.example.notesapp.core.MarkdownVisualTransformation
 import com.example.notesapp.core.SoundUtils
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.m3.markdownColor
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 /**
  * Full-screen editor for creating and modifying notes.
@@ -40,6 +45,8 @@ fun EditorScreen(
     val context = LocalContext.current
     val (showLabelDialog, setShowLabelDialog) = remember { mutableStateOf(false) }
     val (showDeleteDialog, setShowDeleteDialog) = remember { mutableStateOf(false) }
+    var isPreviewMode by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
     BackHandler {
         viewModel.saveAndExit()
@@ -106,6 +113,13 @@ fun EditorScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { isPreviewMode = !isPreviewMode }) {
+                        Icon(
+                            imageVector = if (isPreviewMode) Icons.Default.Edit else Icons.Default.Visibility,
+                            contentDescription = if (isPreviewMode) "Edit" else "Preview",
+                            tint = iconTint
+                        )
+                    }
                     IconButton(onClick = { setShowLabelDialog(true) }) {
                         Icon(Icons.AutoMirrored.Filled.Label, contentDescription = stringResource(R.string.labels), tint = iconTint)
                     }
@@ -203,6 +217,7 @@ fun EditorScreen(
                         color = contentColor.copy(alpha = 0.5f)
                     ) 
                 },
+                readOnly = isPreviewMode,
                 textStyle = MaterialTheme.typography.headlineMedium.copy(color = contentColor),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -214,28 +229,52 @@ fun EditorScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            TextField(
-                value = state.content,
-                onValueChange = viewModel::onContentChange,
-                placeholder = { 
-                    Text(
-                        stringResource(R.string.note_content),
-                        color = contentColor.copy(alpha = 0.5f)
-                    ) 
-                },
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
-                visualTransformation = MarkdownVisualTransformation(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor = contentColor
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            )
+            if (isPreviewMode) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Markdown(
+                        content = state.content,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = markdownColor(text = contentColor),
+                        typography = markdownTypography(
+                            paragraph = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
+                            h1 = MaterialTheme.typography.headlineMedium.copy(color = contentColor),
+                            h2 = MaterialTheme.typography.titleLarge.copy(color = contentColor),
+                            h3 = MaterialTheme.typography.titleMedium.copy(color = contentColor),
+                            ordered = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
+                            bullet = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
+                        )
+                    )
+                }
+            } else {
+                TextField(
+                    value = state.content,
+                    onValueChange = viewModel::onContentChange,
+                    placeholder = { 
+                        Text(
+                            stringResource(R.string.note_content),
+                            color = contentColor.copy(alpha = 0.5f)
+                        ) 
+                    },
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
+                    visualTransformation = MarkdownVisualTransformation(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = contentColor
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
+            }
         }
     }
 }

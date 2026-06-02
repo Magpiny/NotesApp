@@ -7,6 +7,7 @@ import com.example.notesapp.core.TaskReminderManager
 import com.example.notesapp.domain.model.*
 import com.example.notesapp.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -52,6 +53,8 @@ class TaskEditorViewModel @Inject constructor(
     private val _events = MutableSharedFlow<TaskEditorUiEvent>()
     val events = _events.asSharedFlow()
 
+    private var subtasksJob: Job? = null
+
     init {
         loadProjects()
         loadTask()
@@ -93,21 +96,41 @@ class TaskEditorViewModel @Inject constructor(
     }
 
     private fun loadSubtasks(taskId: String) {
-        getSubtasksUseCase(taskId).onEach { subtasks ->
+        subtasksJob?.cancel(null)
+        subtasksJob = getSubtasksUseCase(taskId).onEach { subtasks ->
             _uiState.update { it.copy(subtasks = subtasks) }
         }.launchIn(viewModelScope)
     }
 
     fun addSubtask(title: String) {
         if (title.isBlank()) return
-        val subtask = Subtask(
-            id = UUID.randomUUID().toString(),
-            taskId = _uiState.value.id,
-            title = title,
-            isCompleted = false,
-            position = _uiState.value.subtasks.size
-        )
         viewModelScope.launch {
+            val state = _uiState.value
+            
+            // Auto-save task if it doesn't exist yet to satisfy FK constraint
+            val currentTask = Task(
+                id = state.id,
+                title = state.title.ifBlank { "New Task" },
+                description = state.description,
+                status = state.status,
+                priority = state.priority,
+                dueDate = state.dueDate,
+                projectId = state.projectId,
+                position = 0,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+                recurrencePattern = state.recurrencePattern,
+                labels = state.labels
+            )
+            saveTaskUseCase(currentTask)
+
+            val subtask = Subtask(
+                id = UUID.randomUUID().toString(),
+                taskId = state.id,
+                title = title,
+                isCompleted = false,
+                position = state.subtasks.size
+            )
             saveSubtaskUseCase(subtask)
         }
     }

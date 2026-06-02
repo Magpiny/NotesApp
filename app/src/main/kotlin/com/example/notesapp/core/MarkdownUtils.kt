@@ -54,6 +54,10 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
                         labelRange.last + 1..labelRange.last + 2, // ](
                         labelRange.last + 3..match.range.last // url)
                     )))
+                } else if (style.type == MarkdownType.LIST_UNORDERED || style.type == MarkdownType.LIST_ORDERED) {
+                    val markerGroup = if (match.groups.size > 1) match.groups[1] else null
+                    val markerRange = markerGroup?.range ?: return@forEach
+                    allMatches.add(MarkdownMatch(match.range, style, listOf(markerRange)))
                 } else {
                     val contentGroup = if (match.groups.size > 1) match.groups[1] else null
                     val contentRange = contentGroup?.range ?: match.range
@@ -106,14 +110,18 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
             for (i in contentStart until contentEnd) {
                 val isMarker = markers.any { i in it }
                 if (isMarker) {
-                    // For unordered list markers, replace with bullet point
                     if (match.style.type == MarkdownType.LIST_UNORDERED) {
                         append("•")
                         originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
                         transformedToOriginal.add(i)
                         currentTransformedIndex++
+                    } else if (match.style.type == MarkdownType.LIST_ORDERED) {
+                        // Keep the original number but style it
+                        append(text[i])
+                        originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
+                        transformedToOriginal.add(i)
+                        currentTransformedIndex++
                     } else {
-                        // Skip markers for other types
                         originalToTransformed[currentOriginalIndex++] = currentTransformedIndex
                     }
                 } else {
@@ -148,7 +156,7 @@ fun parseMarkdown(text: String, stripMarkers: Boolean = false): MarkdownParseRes
 }
 
 private enum class MarkdownType {
-    SPAN, BLOCK, LINK, LIST_UNORDERED
+    SPAN, BLOCK, LINK, LIST_UNORDERED, LIST_ORDERED
 }
 
 private data class MarkdownMatch(
@@ -165,12 +173,12 @@ private data class MarkdownStyle(
 )
 
 private val styles = listOf(
-    // Headers (Hide the # but style the text)
+    // Headers
     MarkdownStyle(Regex("(?m)^# (.*)"), SpanStyle(fontWeight = FontWeight.Bold, fontSize = 24.sp), MarkdownType.BLOCK, hideMarkers = true),
     MarkdownStyle(Regex("(?m)^## (.*)"), SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp), MarkdownType.BLOCK, hideMarkers = true),
     MarkdownStyle(Regex("(?m)^### (.*)"), SpanStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp), MarkdownType.BLOCK, hideMarkers = true),
     
-    // Blockquotes (Show the > marker)
+    // Blockquotes
     MarkdownStyle(Regex("(?m)^> (.*)"), SpanStyle(color = Color.Gray, fontStyle = FontStyle.Italic), MarkdownType.BLOCK, hideMarkers = false),
     
     // Inline Styles
@@ -181,17 +189,17 @@ private val styles = listOf(
     MarkdownStyle(Regex("~(.*?)~"), SpanStyle(textDecoration = TextDecoration.LineThrough)),
     MarkdownStyle(Regex("`(.*?)`"), SpanStyle(fontFamily = FontFamily.Monospace, background = Color.LightGray.copy(alpha = 0.2f))),
     
-    // Links (Hide markers and URL, only show label)
+    // Links
     MarkdownStyle(Regex("\\[(.*?)\\]\\((.*?)\\)"), SpanStyle(color = Color(0xFF2196F3), textDecoration = TextDecoration.Underline), MarkdownType.LINK),
     
     // Lists
-    MarkdownStyle(Regex("(?m)^([*\\+-]) (.*)"), SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF006064)), MarkdownType.LIST_UNORDERED, hideMarkers = true),
-    MarkdownStyle(Regex("(?m)^\\d+\\. (.*)"), SpanStyle(fontWeight = FontWeight.Medium, color = Color(0xFF006064)), MarkdownType.BLOCK, hideMarkers = false),
+    MarkdownStyle(Regex("(?m)^([*\\+-]) (.*)"), SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF006064)), MarkdownType.LIST_UNORDERED, hideMarkers = true),
+    MarkdownStyle(Regex("(?m)^(\\d+\\.) (.*)"), SpanStyle(fontWeight = FontWeight.Bold, color = Color(0xFF006064)), MarkdownType.LIST_ORDERED, hideMarkers = true),
     
     // Code Blocks
     MarkdownStyle(Regex("(?s)(```.*?```)"), SpanStyle(fontFamily = FontFamily.Monospace, background = Color.LightGray.copy(alpha = 0.1f)), MarkdownType.BLOCK, hideMarkers = false),
     
-    // Tables (Basic detection)
+    // Tables
     MarkdownStyle(Regex("(?m)^(\\|.*\\|)$"), SpanStyle(fontFamily = FontFamily.Monospace), MarkdownType.BLOCK, hideMarkers = false)
 )
 

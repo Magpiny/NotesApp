@@ -34,7 +34,9 @@ import com.example.notesapp.domain.model.Task
 import com.example.notesapp.domain.model.TaskPriority
 import com.example.notesapp.domain.model.TaskStatus
 import com.example.notesapp.core.formatToReadableDate
-import com.example.notesapp.core.parseMarkdown
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.m3.markdownColor
 
 import androidx.compose.ui.res.stringResource
 import com.example.notesapp.R
@@ -319,15 +321,15 @@ fun TaskCard(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                val styledTitle = remember(task.title) {
-                    parseMarkdown(task.title, stripMarkers = true).annotatedString
-                }
-                Text(
-                    text = styledTitle,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                Markdown(
+                    content = task.title,
+                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                    colors = markdownColor(text = MaterialTheme.colorScheme.onSurface),
+                    typography = markdownTypography(
+                        paragraph = MaterialTheme.typography.titleSmall,
+                        ordered = MaterialTheme.typography.titleSmall,
+                        bullet = MaterialTheme.typography.titleSmall,
+                    )
                 )
                 IconButton(
                     onClick = onDelete,
@@ -447,15 +449,19 @@ fun TaskItem(
             )
             
             Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
-                val styledTitle = remember(task.title) {
-                    parseMarkdown(task.title, stripMarkers = true).annotatedString
-                }
-                Text(
-                    text = styledTitle,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    textDecoration = if (isCompleted) TextDecoration.LineThrough else null,
-                    color = if (isCompleted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                val textColor = if (isCompleted) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                Markdown(
+                    content = task.title,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    colors = markdownColor(text = textColor),
+                    typography = markdownTypography(
+                        paragraph = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            textDecoration = if (isCompleted) TextDecoration.LineThrough else null,
+                        ),
+                        ordered = MaterialTheme.typography.bodyLarge,
+                        bullet = MaterialTheme.typography.bodyLarge,
+                    )
                 )
                 
                 if (task.subtasks.isNotEmpty()) {

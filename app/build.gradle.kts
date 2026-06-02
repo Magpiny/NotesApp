@@ -8,14 +8,14 @@ plugins {
 
 android {
     namespace = "com.example.notesapp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.notesapp"
         minSdk = 33
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
-        versionName = "2.4.2"
+        versionName = "2.4.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         javaCompileOptions {
@@ -67,6 +67,9 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.glance.appwidget)
+
+    implementation(libs.markdown.renderer.m3)
+    implementation(libs.markdown.renderer.code)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

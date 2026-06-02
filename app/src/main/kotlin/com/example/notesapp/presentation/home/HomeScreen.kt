@@ -35,9 +35,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notesapp.core.dimensions
 import com.example.notesapp.core.formatToReadableDate
-import com.example.notesapp.core.parseMarkdown
 import com.example.notesapp.core.shareNote
 import com.example.notesapp.domain.model.Note
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownTypography
+import com.mikepenz.markdown.m3.markdownColor
 
 import com.example.notesapp.core.calculateOnColor
 import androidx.compose.ui.res.stringResource
@@ -423,17 +425,20 @@ fun NoteCard(
                 Spacer(modifier = Modifier.height(8.dp))
             }
             if (note.content.isNotBlank()) {
-                val styledContent = remember(note.content) {
-                    parseMarkdown(note.content, stripMarkers = true).annotatedString
+                Box(modifier = Modifier.heightIn(max = 120.dp).padding(horizontal = 4.dp)) {
+                    Markdown(
+                        content = note.content,
+                        colors = markdownColor(text = contentColor),
+                        typography = markdownTypography(
+                            paragraph = MaterialTheme.typography.bodyMedium,
+                            h1 = MaterialTheme.typography.titleMedium,
+                            h2 = MaterialTheme.typography.titleSmall,
+                            h3 = MaterialTheme.typography.titleSmall,
+                            ordered = MaterialTheme.typography.bodyMedium,
+                            bullet = MaterialTheme.typography.bodyMedium,
+                        )
+                    )
                 }
-                Text(
-                    text = styledContent,
-                    style = MaterialTheme.typography.bodyMedium,
-                    lineHeight = 20.sp,
-                    maxLines = 5,
-                    overflow = TextOverflow.Ellipsis,
-                    color = contentColor.copy(alpha = 0.85f)
-                )
             }
             
             Spacer(modifier = Modifier.height(12.dp))
