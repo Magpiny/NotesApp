@@ -36,7 +36,6 @@ import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.highlightedCodeBlock
 import com.mikepenz.markdown.compose.elements.highlightedCodeFence
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.verticalScroll
 
 /**
@@ -46,13 +45,14 @@ import androidx.compose.foundation.verticalScroll
 @Composable
 fun EditorScreen(
     onNavigateBack: () -> Unit,
-    viewModel: EditorViewModel = hiltViewModel()
+    viewModel: EditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val (showLabelDialog, setShowLabelDialog) = remember { mutableStateOf(false) }
-    val (showDeleteDialog, setShowDeleteDialog) = remember { mutableStateOf(false) }
-    var isPreviewMode by remember { mutableStateOf(false) }
+    val (showLabelDialog, setShowLabelDialog) = remember { mutableStateOf(value = false) }
+    val (showDeleteDialog, setShowDeleteDialog) = remember { mutableStateOf(value = false) }
+    var isPreviewMode by remember { mutableStateOf(value = false) }
+    var showMenu by remember { mutableStateOf(value = false) }
     val scrollState = rememberScrollState()
 
     var contentFieldValue by remember { mutableStateOf(TextFieldValue(state.content)) }
@@ -82,7 +82,7 @@ fun EditorScreen(
             currentLabels = state.labels,
             onAddLabel = viewModel::addLabel,
             onRemoveLabel = viewModel::removeLabel,
-            onDismiss = { setShowLabelDialog(false) }
+            onDismiss = { setShowLabelDialog(false) },
         )
     }
 
@@ -145,24 +145,47 @@ fun EditorScreen(
                     IconButton(onClick = viewModel::redo) {
                         Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", tint = iconTint)
                     }
-                    IconButton(onClick = { shareNote(context, state.title, state.content) }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = iconTint)
-                    }
-                    IconButton(onClick = viewModel::archiveNote) {
-                        Icon(Icons.Default.Archive, contentDescription = stringResource(R.string.archive), tint = iconTint)
-                    }
-                    IconButton(onClick = { 
-                        SoundUtils.playDeletionSound(context)
-                        setShowDeleteDialog(true) 
-                    }) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = stringResource(R.string.delete), tint = iconTint)
-                    }
                     IconButton(onClick = viewModel::togglePin) {
                         Icon(
                             imageVector = if (state.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                             contentDescription = "Toggle Pin",
                             tint = iconTint
                         )
+                    }
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More", tint = iconTint)
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.share)) },
+                                onClick = {
+                                    showMenu = false
+                                    shareNote(context, state.title, state.content)
+                                },
+                                leadingIcon = { Icon(Icons.Default.Share, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.archive)) },
+                                onClick = {
+                                    showMenu = false
+                                    viewModel.archiveNote()
+                                },
+                                leadingIcon = { Icon(Icons.Default.Archive, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showMenu = false
+                                    SoundUtils.playDeletionSound(context)
+                                    setShowDeleteDialog(true)
+                                },
+                                leadingIcon = { Icon(Icons.Default.DeleteOutline, null, tint = MaterialTheme.colorScheme.error) }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -297,7 +320,7 @@ fun EditorScreen(
                         .fillMaxWidth()
                         .weight(1f)
                         .onKeyEvent { keyEvent ->
-                            if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Enter) {
+                            if ((keyEvent.type == KeyEventType.KeyDown) && (keyEvent.key == Key.Enter)) {
                                 val text = contentFieldValue.text
                                 val selection = contentFieldValue.selection
                                 if (selection.collapsed) {

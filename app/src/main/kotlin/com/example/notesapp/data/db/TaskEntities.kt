@@ -1,9 +1,6 @@
 package com.example.notesapp.data.db
 
-import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import androidx.room.*
 import com.example.notesapp.domain.model.TaskPriority
 import com.example.notesapp.domain.model.TaskStatus
 
@@ -77,4 +74,13 @@ data class FocusSessionEntity(
 data class TaskNoteCrossRef(
     val taskId: String,
     val noteId: String
+)
+
+data class TaskWithSubtasks(
+    @Embedded val task: TaskEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "taskId"
+    )
+    val subtasks: List<SubtaskEntity>
 )

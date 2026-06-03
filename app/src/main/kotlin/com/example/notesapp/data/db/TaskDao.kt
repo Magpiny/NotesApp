@@ -6,11 +6,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskDao {
     // Tasks
+    @Transaction
     @Query("SELECT * FROM tasks ORDER BY position ASC")
-    fun getAllTasks(): Flow<List<TaskEntity>>
+    fun getAllTasks(): Flow<List<TaskWithSubtasks>>
 
+    @Transaction
     @Query("SELECT * FROM tasks WHERE id = :id")
-    suspend fun getTaskById(id: String): TaskEntity?
+    suspend fun getTaskById(id: String): TaskWithSubtasks?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: TaskEntity)
@@ -72,11 +74,12 @@ interface TaskDao {
     """)
     fun getTasksForNote(noteId: String): Flow<List<TaskEntity>>
 
+    @Transaction
     @Query("""
         SELECT * FROM tasks 
         WHERE (title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%')
         AND status != 'CANCELLED'
         ORDER BY updatedAt DESC
     """)
-    fun searchTasks(query: String): Flow<List<TaskEntity>>
+    fun searchTasks(query: String): Flow<List<TaskWithSubtasks>>
 }

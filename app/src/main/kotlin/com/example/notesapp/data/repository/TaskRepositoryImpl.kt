@@ -16,21 +16,21 @@ class TaskRepositoryImpl @Inject constructor(
 ) : TaskRepository {
 
     override fun getAllTasks(): Flow<List<Task>> {
-        return dao.getAllTasks().map { entities ->
-            entities.map { it.toDomain() }
+        return dao.getAllTasks().map { relations ->
+            relations.map { it.toDomain() }
         }
     }
 
     override fun searchTasks(query: String): Flow<List<Task>> {
-        return dao.searchTasks(query).map { entities ->
-            entities.map { it.toDomain() }
+        return dao.searchTasks(query).map { relations ->
+            relations.map { it.toDomain() }
         }
     }
 
     override suspend fun getTaskById(id: String): Result<Task> = withContext(Dispatchers.IO) {
         try {
-            val entity = dao.getTaskById(id)
-            if (entity != null) Result.success(entity.toDomain())
+            val relation = dao.getTaskById(id)
+            if (relation != null) Result.success(relation.toDomain())
             else Result.failure(Exception("Task not found"))
         } catch (e: Exception) {
             Result.failure(e)

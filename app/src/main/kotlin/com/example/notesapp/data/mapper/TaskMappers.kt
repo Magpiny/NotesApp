@@ -20,6 +20,10 @@ fun TaskEntity.toDomain(subtasks: List<Subtask> = emptyList()): Task = Task(
     subtasks = subtasks
 )
 
+fun TaskWithSubtasks.toDomain(): Task = task.toDomain(
+    subtasks = subtasks.map { it.toDomain() }
+)
+
 fun Task.toEntity(): TaskEntity = TaskEntity(
     id = id,
     title = title,

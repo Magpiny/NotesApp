@@ -4,7 +4,6 @@ import android.Manifest
 import android.app.AlarmManager
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
@@ -77,15 +76,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkExactAlarmPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
-            if (!alarmManager.canScheduleExactAlarms()) {
-                val intent = Intent().apply {
-                    action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-                    data = Uri.fromParts("package", packageName, null)
-                }
-                startActivity(intent)
+        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+        if (!alarmManager.canScheduleExactAlarms()) {
+            val intent = Intent().apply {
+                action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                data = Uri.fromParts("package", packageName, null)
             }
+            startActivity(intent)
         }
     }
 }

@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
@@ -56,7 +55,7 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToArchive: () -> Unit,
     onNavigateToTrash: () -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -190,7 +189,7 @@ fun HomeScreen(
                                         onDelete = { viewModel.deleteNote(note) },
                                         isSelected = state.selectedNoteIds.contains(note.id),
                                         onMoveUp = if (index > 0 && !isSelectionMode) { { viewModel.onMove(index, index - 1) } } else null,
-                                        onMoveDown = if (index < state.notes.size - 1 && !isSelectionMode) { { viewModel.onMove(index, index + 1) } } else null
+                                        onMoveDown = if (index < (state.notes.size - 1) && !isSelectionMode) { { viewModel.onMove(index, index + 1) } } else null
                                     )
                                 }
                             )
@@ -300,7 +299,7 @@ fun NoteCard(
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null
 ) {
-    var showSheet by remember { mutableStateOf(false) }
+    var showSheet by remember { mutableStateOf(value = false) }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
 

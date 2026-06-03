@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ViewColumn
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,7 +46,7 @@ fun TaskScreen(
     onNavigateToTaskEditor: (String?) -> Unit,
     onNavigateToAnalytics: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    viewModel: TaskViewModel = hiltViewModel()
+    viewModel: TaskViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -102,22 +101,22 @@ fun TaskScreen(
                     .padding(16.dp),
                 trailingIcon = {
                     if (quickAddText.isNotBlank()) {
-                        IconButton(onClick = {
-                            viewModel.quickAddTask(quickAddText)
-                            quickAddText = ""
-                        }) {
+                        IconButton(
+                            onClick = {
+                                viewModel.quickAddTask(quickAddText)
+                                quickAddText = ""
+                            }
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.add))
                         }
                     }
                 },
-                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                    onSend = {
-                        if (quickAddText.isNotBlank()) {
-                            viewModel.quickAddTask(quickAddText)
-                            quickAddText = ""
-                        }
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions {
+                    if (quickAddText.isNotBlank()) {
+                        viewModel.quickAddTask(quickAddText)
+                        quickAddText = ""
                     }
-                ),
+                },
                 singleLine = true,
                 shape = MaterialTheme.shapes.medium,
                 colors = TextFieldDefaults.colors(
@@ -351,13 +350,13 @@ fun TaskCard(
                         imageVector = Icons.Default.Event,
                         contentDescription = null,
                         modifier = Modifier.size(12.dp),
-                        tint = if (task.dueDate < System.currentTimeMillis() && task.status != TaskStatus.COMPLETED) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if ((task.dueDate < System.currentTimeMillis()) && task.status != TaskStatus.COMPLETED) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = task.dueDate.formatToReadableDate(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (task.dueDate < System.currentTimeMillis() && task.status != TaskStatus.COMPLETED) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if ((task.dueDate < System.currentTimeMillis()) && task.status != TaskStatus.COMPLETED) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -370,9 +369,9 @@ fun TaskCard(
             ) {
                 PriorityChip(priority = task.priority)
                 
-                if (onNextStatus != null) {
+                onNextStatus?.let { onNext ->
                     IconButton(
-                        onClick = onNextStatus,
+                        onClick = onNext,
                         modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
@@ -397,7 +396,7 @@ fun TaskItem(
 ) {
     val isCompleted = task.status == TaskStatus.COMPLETED
     val haptic = LocalHapticFeedback.current
-    var pressed by remember { mutableStateOf(false) }
+    var pressed by remember { mutableStateOf(value = false) }
     val scale by animateFloatAsState(if (pressed) 0.96f else 1f, label = "Scale")
 
     Card(
