@@ -92,7 +92,7 @@ class TaskReminderManager @Inject constructor(
         }
     }
 
-    private fun generateRequestCode(taskId: String, minutesBefore: Int): Int {
+    internal fun generateRequestCode(taskId: String, minutesBefore: Int): Int {
         //taskId is a UUID string. Use a consistent hash and combine with minutesBefore
         return (taskId.hashCode() * 31) + minutesBefore
     }

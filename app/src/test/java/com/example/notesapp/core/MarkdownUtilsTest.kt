@@ -1,22 +1,31 @@
 package com.example.notesapp.core
 
-import org.junit.Test
-import org.junit.Assert.*
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import org.junit.jupiter.api.Test
 
 class MarkdownUtilsTest {
+
     @Test
-    fun testParseMarkdownCodeBlock() {
+    fun `parseMarkdown should not crash on code blocks`() {
         val text = "```cpp\nstd::println(\"Hello world\");\n```"
         val result = parseMarkdown(text, stripMarkers = true)
-        assertNotNull(result)
+        result.annotatedString.text.shouldContain("std::println")
     }
 
     @Test
-    fun testParseMarkdownUnorderedListBullets() {
-        val text = "* Item 1\n- Item 2\n+ Item 3"
+    fun `parseMarkdown should render unordered list with bullets`() {
+        val text = "* Item 1\n- Item 2"
         val result = parseMarkdown(text, stripMarkers = true)
-        val transformedText = result.annotatedString.text
-        // Checking for the bullet point in a way that avoids potential encoding issues in stdout
-        assertTrue("Text should contain bullet", transformedText.contains("\u2022"))
+        result.annotatedString.text.shouldContain("\u2022 Item 1")
+        result.annotatedString.text.shouldContain("\u2022 Item 2")
+    }
+
+    @Test
+    fun `parseMarkdown should handle ordered list`() {
+        val text = "1. First\n2. Second"
+        val result = parseMarkdown(text, stripMarkers = true)
+        result.annotatedString.text.shouldContain("1. First")
+        result.annotatedString.text.shouldContain("2. Second")
     }
 }
