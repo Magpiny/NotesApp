@@ -1,6 +1,8 @@
 package com.example.notesapp.presentation.editor
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.LazyRow
@@ -16,6 +18,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -35,6 +38,7 @@ import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.highlightedCodeBlock
 import com.mikepenz.markdown.compose.elements.highlightedCodeFence
+import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 
@@ -54,6 +58,12 @@ fun EditorScreen(
     var isPreviewMode by remember { mutableStateOf(value = false) }
     var showMenu by remember { mutableStateOf(value = false) }
     val scrollState = rememberScrollState()
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.addAttachment(it.toString(), com.example.notesapp.domain.model.AttachmentType.IMAGE) }
+    }
 
     var contentFieldValue by remember { mutableStateOf(TextFieldValue(state.content)) }
 
@@ -135,6 +145,11 @@ fun EditorScreen(
                             contentDescription = if (isPreviewMode) "Edit" else "Preview",
                             tint = iconTint
                         )
+                    }
+                    if (!isPreviewMode) {
+                        IconButton(onClick = { imagePicker.launch("image/*") }) {
+                            Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Add Image", tint = iconTint)
+                        }
                     }
                     IconButton(onClick = { setShowLabelDialog(true) }) {
                         Icon(Icons.AutoMirrored.Filled.Label, contentDescription = stringResource(R.string.labels), tint = iconTint)
@@ -225,6 +240,43 @@ fun EditorScreen(
                 .imePadding()
                 .fillMaxSize()
         ) {
+            if (state.attachments.isNotEmpty()) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    items(state.attachments, key = { it.id }) { attachment ->
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        ) {
+                            if (attachment.type == com.example.notesapp.domain.model.AttachmentType.IMAGE) {
+                                androidx.compose.foundation.Image(
+                                    painter = androidx.compose.ui.res.painterResource(id = R.mipmap.ic_launcher), // Placeholder for now
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            }
+                            IconButton(
+                                onClick = { viewModel.deleteAttachment(attachment) },
+                                modifier = Modifier.align(Alignment.TopEnd).size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close, 
+                                    contentDescription = "Remove",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             if (state.labels.isNotEmpty()) {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
@@ -354,7 +406,7 @@ fun EditorScreen(
                                             return@onKeyEvent true
                                         }
                                     } else if (orderedMatch != null) {
-                                        val number = orderedMatch.groupValues[1].toInt()
+                                        val number = orderedMatch.groupValues[1].toIntOrNull() ?: 1
                                         val content = orderedMatch.groupValues[2]
                                         if (content.isBlank()) {
                                             // Empty list item, clear the line

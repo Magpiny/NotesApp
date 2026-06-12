@@ -16,11 +16,6 @@ interface TaskRepository {
     fun getAllProjects(): Flow<List<Project>>
     suspend fun createProject(project: Project): Result<Unit>
 
-    // Subtasks
-    fun getSubtasksForTask(taskId: String): Flow<List<Subtask>>
-    suspend fun saveSubtask(subtask: Subtask): Result<Unit>
-    suspend fun deleteSubtask(subtask: Subtask): Result<Unit>
-
     // Links
     fun getNotesForTask(taskId: String): Flow<List<Note>>
     fun getTasksForNote(noteId: String): Flow<List<Task>>

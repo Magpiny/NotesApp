@@ -6,13 +6,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskDao {
     // Tasks
-    @Transaction
     @Query("SELECT * FROM tasks ORDER BY position ASC")
-    fun getAllTasks(): Flow<List<TaskWithSubtasks>>
+    fun getAllTasks(): Flow<List<TaskEntity>>
 
-    @Transaction
     @Query("SELECT * FROM tasks WHERE id = :id")
-    suspend fun getTaskById(id: String): TaskWithSubtasks?
+    suspend fun getTaskById(id: String): TaskEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: TaskEntity)
@@ -32,19 +30,6 @@ interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertProject(project: ProjectEntity)
-
-    // Subtasks
-    @Query("SELECT * FROM subtasks WHERE taskId = :taskId ORDER BY position ASC")
-    fun getSubtasksForTask(taskId: String): Flow<List<SubtaskEntity>>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSubtask(subtask: SubtaskEntity)
-
-    @Update
-    suspend fun updateSubtasks(subtasks: List<SubtaskEntity>)
-
-    @Delete
-    suspend fun deleteSubtask(subtask: SubtaskEntity)
 
     // Focus Sessions
     @Insert
@@ -74,12 +59,11 @@ interface TaskDao {
     """)
     fun getTasksForNote(noteId: String): Flow<List<TaskEntity>>
 
-    @Transaction
     @Query("""
         SELECT * FROM tasks 
         WHERE (title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%')
         AND status != 'CANCELLED'
         ORDER BY updatedAt DESC
     """)
-    fun searchTasks(query: String): Flow<List<TaskWithSubtasks>>
+    fun searchTasks(query: String): Flow<List<TaskEntity>>
 }

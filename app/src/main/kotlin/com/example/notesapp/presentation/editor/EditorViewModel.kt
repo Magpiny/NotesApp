@@ -4,20 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notesapp.core.Constants
-import com.example.notesapp.domain.model.Note
-import com.example.notesapp.domain.usecase.GetNoteByIdUseCase
-import com.example.notesapp.domain.usecase.MoveNoteToTrashUseCase
-import com.example.notesapp.domain.usecase.SaveNoteUseCase
-import com.example.notesapp.domain.usecase.SaveTaskUseCase
-import com.example.notesapp.domain.usecase.LinkTaskToNoteUseCase
+import com.example.notesapp.domain.model.*
+import com.example.notesapp.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.example.notesapp.domain.model.Task
 import com.example.notesapp.domain.model.TaskPriority
@@ -32,6 +23,7 @@ data class EditorUiState(
     val color: Long = 0xFFFFFFFFL,
     val isPinned: Boolean = false,
     val labels: List<String> = emptyList(),
+    val attachments: List<Attachment> = emptyList(),
     val isLoading: Boolean = false,
     val wordCount: Int = 0,
     val charCount: Int = 0
@@ -55,7 +47,10 @@ class EditorViewModel @Inject constructor(
     private val saveNoteUseCase: SaveNoteUseCase,
     private val moveNoteToTrashUseCase: MoveNoteToTrashUseCase,
     private val saveTaskUseCase: SaveTaskUseCase,
-    private val linkTaskToNoteUseCase: LinkTaskToNoteUseCase
+    private val linkTaskToNoteUseCase: LinkTaskToNoteUseCase,
+    private val getAttachmentsUseCase: GetAttachmentsUseCase,
+    private val saveAttachmentUseCase: SaveAttachmentUseCase,
+    private val deleteAttachmentUseCase: DeleteAttachmentUseCase
 ) : ViewModel() {
 
     private val noteId: String? = savedStateHandle["noteId"]
@@ -76,6 +71,15 @@ class EditorViewModel @Inject constructor(
         loadNote()
         setupAutoSave()
         setupUndoRedo()
+        loadAttachments()
+    }
+
+    private fun loadAttachments() {
+        if (noteId != null) {
+            getAttachmentsUseCase(noteId).onEach { attachments ->
+                _uiState.update { it.copy(attachments = attachments) }
+            }.launchIn(viewModelScope)
+        }
     }
 
     private fun loadNote() {
@@ -163,7 +167,7 @@ class EditorViewModel @Inject constructor(
                             // Empty numbered item - remove and end
                             finalContent = oldContent.dropLast(match.value.length) + "\n"
                         } else {
-                            val currentNumber = match.groupValues[1].toInt()
+                            val currentNumber = match.groupValues[1].toIntOrNull() ?: 1
                             finalContent = newContent + "${currentNumber + 1}. "
                         }
                     }
@@ -194,6 +198,25 @@ class EditorViewModel @Inject constructor(
     fun removeLabel(label: String) {
         val currentLabels = _uiState.value.labels
         _uiState.update { it.copy(labels = currentLabels - label) }
+    }
+
+    fun addAttachment(uri: String, type: AttachmentType) {
+        viewModelScope.launch {
+            val attachment = Attachment(
+                id = UUID.randomUUID().toString(),
+                noteId = _uiState.value.id,
+                localPath = uri,
+                type = type,
+                createdAt = System.currentTimeMillis()
+            )
+            saveAttachmentUseCase(attachment)
+        }
+    }
+
+    fun deleteAttachment(attachment: Attachment) {
+        viewModelScope.launch {
+            deleteAttachmentUseCase(attachment)
+        }
     }
 
     private fun pushUndoState(title: String, content: String) {
@@ -314,7 +337,8 @@ class EditorViewModel @Inject constructor(
             notebookId = null
         )
         saveNoteUseCase(note).onSuccess {
-            syncInlineTasks(state.content, noteId)
+            // TODO: Fix duplicate task creation before re-enabling sync
+            // syncInlineTasks(state.content, noteId)
         }
     }
 }

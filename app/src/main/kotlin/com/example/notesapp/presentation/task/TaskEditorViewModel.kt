@@ -7,7 +7,6 @@ import com.example.notesapp.core.TaskReminderManager
 import com.example.notesapp.domain.model.*
 import com.example.notesapp.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -24,7 +23,6 @@ data class TaskEditorUiState(
     val projectId: String? = null,
     val labels: List<String> = emptyList(),
     val projects: List<Project> = emptyList(),
-    val subtasks: List<Subtask> = emptyList(),
     val isLoading: Boolean = false,
 )
 
@@ -39,9 +37,6 @@ class TaskEditorViewModel @Inject constructor(
     private val getTaskByIdUseCase: GetTaskByIdUseCase,
     private val saveTaskUseCase: SaveTaskUseCase,
     private val getAllProjectsUseCase: GetAllProjectsUseCase,
-    private val getSubtasksUseCase: GetSubtasksUseCase,
-    private val saveSubtaskUseCase: SaveSubtaskUseCase,
-    private val deleteSubtaskUseCase: DeleteSubtaskUseCase,
     private val reminderManager: TaskReminderManager,
 ) : ViewModel() {
 
@@ -53,12 +48,9 @@ class TaskEditorViewModel @Inject constructor(
     private val _events = MutableSharedFlow<TaskEditorUiEvent>()
     val events = _events.asSharedFlow()
 
-    private var subtasksJob: Job? = null
-
     init {
         loadProjects()
         loadTask()
-        loadSubtasks(_uiState.value.id)
     }
 
     private fun loadProjects() {
@@ -86,64 +78,11 @@ class TaskEditorViewModel @Inject constructor(
                             isLoading = false,
                         )
                     }
-                    loadSubtasks(task.id)
                 }.onFailure {
                     _events.emit(TaskEditorUiEvent.ShowSnackbar("Failed to load task"))
                     _uiState.update { it.copy(isLoading = false) }
                 }
             }
-        }
-    }
-
-    private fun loadSubtasks(taskId: String) {
-        subtasksJob?.cancel(null)
-        subtasksJob = getSubtasksUseCase(taskId).onEach { subtasks ->
-            _uiState.update { it.copy(subtasks = subtasks) }
-        }.launchIn(viewModelScope)
-    }
-
-    fun addSubtask(title: String) {
-        if (title.isBlank()) return
-        viewModelScope.launch {
-            val state = _uiState.value
-            
-            // Auto-save task if it doesn't exist yet to satisfy FK constraint
-            val currentTask = Task(
-                id = state.id,
-                title = state.title.ifBlank { "New Task" },
-                description = state.description,
-                status = state.status,
-                priority = state.priority,
-                dueDate = state.dueDate,
-                projectId = state.projectId,
-                position = 0,
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis(),
-                recurrencePattern = state.recurrencePattern,
-                labels = state.labels,
-            )
-            saveTaskUseCase(currentTask)
-
-            val subtask = Subtask(
-                id = UUID.randomUUID().toString(),
-                taskId = state.id,
-                title = title,
-                isCompleted = false,
-                position = state.subtasks.size,
-            )
-            saveSubtaskUseCase(subtask)
-        }
-    }
-
-    fun toggleSubtask(subtask: Subtask) {
-        viewModelScope.launch {
-            saveSubtaskUseCase(subtask.copy(isCompleted = !subtask.isCompleted))
-        }
-    }
-
-    fun deleteSubtask(subtask: Subtask) {
-        viewModelScope.launch {
-            deleteSubtaskUseCase(subtask)
         }
     }
 

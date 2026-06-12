@@ -39,25 +39,6 @@ data class TaskEntity(
     val labels: String // Comma separated
 )
 
-@Entity(tableName = "subtasks",
-    foreignKeys = [
-        ForeignKey(
-            entity = TaskEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["taskId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-    indices = [Index("taskId")]
-)
-data class SubtaskEntity(
-    @PrimaryKey val id: String,
-    val taskId: String,
-    val title: String,
-    val isCompleted: Boolean,
-    val position: Int
-)
-
 @Entity(tableName = "focus_sessions")
 data class FocusSessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -74,13 +55,4 @@ data class FocusSessionEntity(
 data class TaskNoteCrossRef(
     val taskId: String,
     val noteId: String
-)
-
-data class TaskWithSubtasks(
-    @Embedded val task: TaskEntity,
-    @Relation(
-        parentColumn = "id",
-        entityColumn = "taskId"
-    )
-    val subtasks: List<SubtaskEntity>
 )

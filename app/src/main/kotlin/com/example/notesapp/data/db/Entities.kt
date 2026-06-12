@@ -1,10 +1,6 @@
 package com.example.notesapp.data.db
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.Fts4
-import androidx.room.PrimaryKey
-import kotlinx.serialization.Serializable
+import androidx.room.*
 
 /**
  * Room entity representing a physical Note in the database.
@@ -35,4 +31,28 @@ data class NoteFtsEntity(
     @PrimaryKey @ColumnInfo(name = "rowid") val rowId: Int,
     val title: String,
     val content: String
+)
+
+/**
+ * Room entity representing a Media Attachment (Image, Audio, Sketch).
+ */
+@Entity(
+    tableName = "attachments",
+    foreignKeys = [
+        ForeignKey(
+            entity = NoteEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["noteId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("noteId")]
+)
+data class AttachmentEntity(
+    @PrimaryKey val id: String,
+    val noteId: String,
+    val localPath: String,
+    val type: String, // "IMAGE", "AUDIO", "SKETCH"
+    val ocrText: String? = null,
+    val createdAt: Long
 )

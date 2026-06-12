@@ -463,15 +463,6 @@ fun TaskItem(
                     )
                 )
                 
-                if (task.subtasks.isNotEmpty()) {
-                    val completed = task.subtasks.count { it.isCompleted }
-                    Text(
-                        text = "$completed/${task.subtasks.size} subtasks",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-
                 if (task.dueDate != null) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {

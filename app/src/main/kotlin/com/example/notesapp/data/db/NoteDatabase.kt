@@ -13,15 +13,16 @@ import androidx.room.TypeConverters
         NoteFtsEntity::class,
         TaskEntity::class,
         ProjectEntity::class,
-        SubtaskEntity::class,
         FocusSessionEntity::class,
-        TaskNoteCrossRef::class
+        TaskNoteCrossRef::class,
+        AttachmentEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class NoteDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
     abstract fun taskDao(): TaskDao
+    abstract fun attachmentDao(): AttachmentDao
 }

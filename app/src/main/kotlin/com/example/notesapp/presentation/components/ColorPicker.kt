@@ -38,7 +38,7 @@ fun ColorPicker(
     modifier: Modifier = Modifier
 ) {
     LazyRow(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier,
         contentPadding = PaddingValues(horizontal = MaterialTheme.dimensions.paddingMedium),
         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.dimensions.paddingSmall)
     ) {
@@ -68,5 +68,13 @@ fun ColorPicker(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview
+@Composable
+fun ColorPickerPreview() {
+    MaterialTheme {
+        ColorPicker(selectedColor = 0xFFFFFFFFL, onColorSelected = {})
     }
 }

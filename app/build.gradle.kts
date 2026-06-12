@@ -10,14 +10,14 @@ plugins {
 
 android {
     namespace = "com.example.notesapp"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.example.notesapp"
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
-        versionName = "2.4.9"
+        versionName = "2.5.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         javaCompileOptions {

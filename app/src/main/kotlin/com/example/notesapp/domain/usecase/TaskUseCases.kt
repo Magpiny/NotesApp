@@ -33,18 +33,6 @@ class CreateProjectUseCase @Inject constructor(private val repository: TaskRepos
     suspend operator fun invoke(project: Project): Result<Unit> = repository.createProject(project)
 }
 
-class GetSubtasksUseCase @Inject constructor(private val repository: TaskRepository) {
-    operator fun invoke(taskId: String): Flow<List<Subtask>> = repository.getSubtasksForTask(taskId)
-}
-
-class SaveSubtaskUseCase @Inject constructor(private val repository: TaskRepository) {
-    suspend operator fun invoke(subtask: Subtask): Result<Unit> = repository.saveSubtask(subtask)
-}
-
-class DeleteSubtaskUseCase @Inject constructor(private val repository: TaskRepository) {
-    suspend operator fun invoke(subtask: Subtask): Result<Unit> = repository.deleteSubtask(subtask)
-}
-
 class LinkTaskToNoteUseCase @Inject constructor(private val repository: TaskRepository) {
     suspend operator fun invoke(taskId: String, noteId: String): Result<Unit> = repository.linkTaskToNote(taskId, noteId)
 }

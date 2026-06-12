@@ -18,15 +18,6 @@ data class Project(
 )
 
 @Serializable
-data class Subtask(
-    val id: String,
-    val taskId: String,
-    val title: String,
-    val isCompleted: Boolean,
-    val position: Int
-)
-
-@Serializable
 data class Task(
     val id: String,
     val title: String,
@@ -40,6 +31,5 @@ data class Task(
     val updatedAt: Long,
     val recurrencePattern: String? = null, // e.g., "DAILY", "WEEKLY", "MONTHLY"
     val recurrenceId: String? = null,
-    val labels: List<String> = emptyList(),
-    val subtasks: List<Subtask> = emptyList()
+    val labels: List<String> = emptyList()
 )

@@ -3,7 +3,7 @@ package com.example.notesapp.data.mapper
 import com.example.notesapp.data.db.*
 import com.example.notesapp.domain.model.*
 
-fun TaskEntity.toDomain(subtasks: List<Subtask> = emptyList()): Task = Task(
+fun TaskEntity.toDomain(): Task = Task(
     id = id,
     title = title,
     description = description,
@@ -16,12 +16,7 @@ fun TaskEntity.toDomain(subtasks: List<Subtask> = emptyList()): Task = Task(
     updatedAt = updatedAt,
     recurrencePattern = recurrencePattern,
     recurrenceId = recurrenceId,
-    labels = if (labels.isBlank()) emptyList() else labels.split(","),
-    subtasks = subtasks
-)
-
-fun TaskWithSubtasks.toDomain(): Task = task.toDomain(
-    subtasks = subtasks.map { it.toDomain() }
+    labels = if (labels.isBlank()) emptyList() else labels.split(",")
 )
 
 fun Task.toEntity(): TaskEntity = TaskEntity(
@@ -50,20 +45,4 @@ fun Project.toEntity(): ProjectEntity = ProjectEntity(
     id = id,
     title = title,
     color = color
-)
-
-fun SubtaskEntity.toDomain(): Subtask = Subtask(
-    id = id,
-    taskId = taskId,
-    title = title,
-    isCompleted = isCompleted,
-    position = position
-)
-
-fun Subtask.toEntity(): SubtaskEntity = SubtaskEntity(
-    id = id,
-    taskId = taskId,
-    title = title,
-    isCompleted = isCompleted,
-    position = position
 )

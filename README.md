@@ -2,16 +2,26 @@
 
 [![Android CI](https://github.com/Magpiny/NotesApp/actions/workflows/ci.yml/badge.svg)](https://github.com/Magpiny/NotesApp/actions/workflows/ci.yml)
 ![Android SDK](https://img.shields.io/badge/SDK-33%2B-brightgreen)
-![Version](https://img.shields.io/badge/Version-2.4.9-blue)
+![Version](https://img.shields.io/badge/Version-2.5.2-blue)
 ![License](https://img.shields.io/badge/License-Apache_2.0-orange)
 
 Notafo is a premium, local-first personal productivity suite for Android. It combines a highly secure note-taking experience with an advanced task management system and customizable deep-work tools, all within a fluid Material 3 design.
 
-## 🚀 Version 2.4.9 Highlights - "The Quality Update"
+## 🚀 Version 2.5.2 Highlights - "The Media & Core Update"
 
-This update modernizes the entire technical core of Notafo, bringing professional-grade stability and a best-in-class Markdown experience.
+This update introduces multimedia support to your notes and brings the latest Android 15 performance optimizations to the app core.
 
-### ✍️ High-Fidelity Markdown (v2.4.9)
+### 🖼️ Multimedia Integration (v2.5.2)
+- **Image Attachments**: You can now add high-resolution images to any note. View them in a scrollable attachment gallery within the editor.
+- **Smart Management**: Easily remove attachments with a single tap, with automatic cleanup of unused media.
+
+### 🛠️ Core Modernization & Stability
+- **Android 15 Optimized**: Fully compatible with **Android 15 (API 37)**, leveraging the latest system performance and security improvements.
+- **Gradle 9.5 Upgrade**: Migrated to **Gradle 9.5.1** and **AGP 9.2.1** for significantly faster build times and better dependency resolution.
+- **UI Crash Protection**: Resolved several critical crashes in the **Color Picker** and **Markdown Editor** related to layout constraints and data overflow.
+- **Database Optimization**: Refined auto-save logic to prevent redundant operations and ensure maximum responsiveness.
+
+### ✍️ High-Fidelity Markdown
 - **Library Integration**: Replaced custom rendering with Mike Penz's Multiplatform Markdown Renderer for 100% specification compliance.
 - **Syntax Highlighting**: Full color support for code blocks (C++, Kotlin, Python, etc.) in the new **Editor Preview** mode.
 - **Smart Listing**: Intelligently auto-increments numbers and continues bullet points as you type.
@@ -21,12 +31,6 @@ This update modernizes the entire technical core of Notafo, bringing professiona
 - **Reliable Subtasks**: Powered by Room Relations, subtasks now persist instantly and show real-time progress counts (e.g., "3/5 subtasks") in the main list.
 - **Multi-Stage Reminders**: Set precise notifications for **10 minutes before**, **5 minutes before**, and **exactly on time**.
 - **AlarmClock Precision**: Uses Android's high-priority alarm system to ensure notifications fire even in low-power modes.
-
-### 🛠️ Technical Modernization
-- **Jetpack Compose Upgrade**: Now powered by **Compose BOM 2026.05.01**, utilizing the latest performance optimizations and Material 3 components.
-- **Comprehensive Testing**: A robust test suite using **JUnit 5**, **MockK**, and **Robolectric** covering data layers, reminders, and UI logic.
-- **Zero-Warning Codebase**: Resolved over 60+ lint and deprecation warnings to ensure long-term maintainability.
-- **Small Screen Optimization**: Added a dynamic overflow menu to the editor, preventing button overlap on devices like the Galaxy A56.
 
 ## 📸 Visual Tour
 
@@ -49,7 +53,7 @@ This update modernizes the entire technical core of Notafo, bringing professiona
 - **Database:** Room with @Relation support
 - **Testing:** JUnit 5, MockK, Kotest, Robolectric
 - **Dependency Injection:** Hilt
-- **Build System:** Gradle 9.2.1 with KSP 2.3.8
+- **Build System:** Gradle 9.5.1 with KSP 2.3.9
 - **Localization:** Multi-language support (English/Español/Français/etc.)
 
 ## 📦 Installation

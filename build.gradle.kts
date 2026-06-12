@@ -6,5 +6,6 @@ plugins {
     alias(libs.plugins.kotlinCompose) apply false
     alias(libs.plugins.androidJunit5) apply false
     alias(libs.plugins.roborazziPlugin) apply false
+    id("idea")
 }
 

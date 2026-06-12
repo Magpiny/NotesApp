@@ -16,21 +16,21 @@ class TaskRepositoryImpl @Inject constructor(
 ) : TaskRepository {
 
     override fun getAllTasks(): Flow<List<Task>> {
-        return dao.getAllTasks().map { relations ->
-            relations.map { it.toDomain() }
+        return dao.getAllTasks().map { entities ->
+            entities.map { it.toDomain() }
         }
     }
 
     override fun searchTasks(query: String): Flow<List<Task>> {
-        return dao.searchTasks(query).map { relations ->
-            relations.map { it.toDomain() }
+        return dao.searchTasks(query).map { entities ->
+            entities.map { it.toDomain() }
         }
     }
 
     override suspend fun getTaskById(id: String): Result<Task> = withContext(Dispatchers.IO) {
         try {
-            val relation = dao.getTaskById(id)
-            if (relation != null) Result.success(relation.toDomain())
+            val entity = dao.getTaskById(id)
+            if (entity != null) Result.success(entity.toDomain())
             else Result.failure(Exception("Task not found"))
         } catch (e: Exception) {
             Result.failure(e)
@@ -73,30 +73,6 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun createProject(project: Project): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             dao.insertProject(project.toEntity())
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override fun getSubtasksForTask(taskId: String): Flow<List<Subtask>> {
-        return dao.getSubtasksForTask(taskId).map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
-
-    override suspend fun saveSubtask(subtask: Subtask): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            dao.insertSubtask(subtask.toEntity())
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun deleteSubtask(subtask: Subtask): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            dao.deleteSubtask(subtask.toEntity())
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

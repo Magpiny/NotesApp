@@ -158,53 +158,6 @@ fun TaskEditorScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Subtasks", style = MaterialTheme.typography.titleMedium)
-            
-            var subtaskText by remember { mutableStateOf("") }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextField(
-                    value = subtaskText,
-                    onValueChange = { subtaskText = it },
-                    placeholder = { Text("Add subtask...") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
-                IconButton(onClick = {
-                    if (subtaskText.isNotBlank()) {
-                        viewModel.addSubtask(subtaskText)
-                        subtaskText = ""
-                    }
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Subtask")
-                }
-            }
-
-            state.subtasks.forEach { subtask ->
-                ListItem(
-                    headlineContent = { 
-                        Text(
-                            text = subtask.title,
-                            style = if (subtask.isCompleted) 
-                                MaterialTheme.typography.bodyLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough) 
-                            else MaterialTheme.typography.bodyLarge
-                        )
-                    },
-                    leadingContent = {
-                        Checkbox(
-                            checked = subtask.isCompleted,
-                            onCheckedChange = { viewModel.toggleSubtask(subtask) }
-                        )
-                    },
-                    trailingContent = {
-                        IconButton(onClick = { viewModel.deleteSubtask(subtask) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete Subtask")
-                        }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                )
-            }
         }
     }
 
