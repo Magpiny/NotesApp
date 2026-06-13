@@ -56,8 +56,7 @@ abstract class AppModule {
                 context,
                 NoteDatabase::class.java,
                 "notes_db"
-            ).fallbackToDestructiveMigration(dropAllTables = true)
-                .build()
+            ).build()
         }
 
         @Provides

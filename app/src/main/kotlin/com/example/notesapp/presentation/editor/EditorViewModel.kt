@@ -66,6 +66,7 @@ class EditorViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val noteId: String? = savedStateHandle["noteId"]
+    val isExistingNote = !noteId.isNullOrBlank()
 
     private val _uiState = MutableStateFlow(EditorUiState())
     val uiState = _uiState.asStateFlow()

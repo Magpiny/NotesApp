@@ -46,6 +46,7 @@ import com.mikepenz.markdown.m3.markdownColor
 import com.mikepenz.markdown.m3.markdownTypography
 import com.example.notesapp.presentation.components.ColorPicker
 import com.example.notesapp.presentation.components.WaveformVisualizer
+import coil3.compose.AsyncImage
 
 /**
  * Full-screen editor for creating and modifying notes.
@@ -60,7 +61,12 @@ fun EditorScreen(
     val context = LocalContext.current
     val (showLabelDialog, setShowLabelDialog) = remember { mutableStateOf(value = false) }
     val (showDeleteDialog, setShowDeleteDialog) = remember { mutableStateOf(value = false) }
-    var isPreviewMode by remember { mutableStateOf(value = false) }
+    
+    // Default to Preview mode for existing notes, Edit mode for new ones
+    var isPreviewMode by remember { 
+        mutableStateOf<Boolean>(viewModel.isExistingNote)
+    }
+    
     var showMenu by remember { mutableStateOf(value = false) }
     val scrollState = rememberScrollState()
 
@@ -326,8 +332,12 @@ fun EditorScreen(
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             if (attachment.type == AttachmentType.IMAGE) {
-                                // In a real app, use Coils/Glide to load URI. Placeholder for now.
-                                Icon(Icons.Default.Image, null, modifier = Modifier.align(Alignment.Center))
+                                AsyncImage(
+                                    model = attachment.localPath,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
                             } else if (attachment.type == AttachmentType.AUDIO) {
                                 IconButton(
                                     onClick = { viewModel.playAudio(attachment) },
