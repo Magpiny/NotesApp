@@ -56,3 +56,32 @@ data class TaskNoteCrossRef(
     val taskId: String,
     val noteId: String
 )
+
+@Entity(
+    tableName = "subtasks",
+    foreignKeys = [
+        ForeignKey(
+            entity = TaskEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["taskId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("taskId")]
+)
+data class SubtaskEntity(
+    @PrimaryKey val id: String,
+    val taskId: String,
+    val title: String,
+    val isCompleted: Boolean,
+    val position: Int
+)
+
+data class TaskWithSubtasks(
+    @Embedded val task: TaskEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "taskId"
+    )
+    val subtasks: List<SubtaskEntity>
+)

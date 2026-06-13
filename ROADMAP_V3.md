@@ -7,10 +7,15 @@ This document serves as the strategic guide for Notafo's evolution. Our core mis
 ## 🏛️ Version 2: The Foundation (Strictly Offline)
 
 ### 🖼️ v2.5 — "The Media Update"
-- **Image Attachments**: Support for multiple local images per note with a fluid gallery view.
-- **Voice Notes**: Integrated local audio recording and playback.
-- **Canvas Mode**: A basic sketching tool for quick drawings or handwritten diagrams.
-- **On-Device OCR**: Use local ML kits to extract text from images (searchable offline).
+- **v2.5.1**: **Image Attachments**: Support for multiple local images per note with a fluid gallery view. ✅
+- **v2.5.2**: **Polishing & Fixes**: Refined gallery transitions, image caching, and critical bug fixes. ✅
+- **v2.5.3**: **Voice Notes & Read Aloud**: Integrated local audio recording, playback, and TTS for notes. ✅
+- **v2.5.4**: **Audio Polishing**: Waveform visualization, background playback, and TTS speed controls. ✅
+- **v2.5.5**: **Canvas Mode**: A basic sketching tool for quick drawings or handwritten diagrams.
+- **v2.5.6**: **Canvas Refinement**: Undo/redo, stroke width, and "Draw on Image" support.
+- **v2.5.7**: **On-Device OCR**: Use local ML kits to extract text from images (searchable offline).
+- **v2.5.8**: **Intelligence Polish**: Auto-tagging and one-tap "Copy to Note" for OCR text.
+- **v2.5.9**: **Media Master Review**: Final performance audit, storage manager, and UI consistency.
 
 ### 📁 v2.6 — "The Structural Update"
 - **Nested Notebooks**: Folders and sub-folders for hierarchical organization.
@@ -32,20 +37,22 @@ This document serves as the strategic guide for Notafo's evolution. Our core mis
 ## 🚀 Version 3: The Mastery (Cloud & Intelligence)
 
 ### 🔄 v3.1 — "The Portability Phase"
-1. **Markdown Folder Export**: Export entire notebooks as organized Markdown files.
-2. **PDF Generation**: Transform notes into professional PDF documents.
-3. **Private Cloud Sync (WebDAV)**: Support for self-hosted cloud sync (Nextcloud, etc.).
-4. **Encrypted Dropbox Sync**: Optional encrypted sync for Dropbox users.
+- **v3.1.1**: **Export Engine**: Markdown folder export and PDF generation.
+- **v3.1.2**: **Export Polish**: Custom PDF templates and Markdown syntax verification.
+- **v3.1.3**: **Cloud Sync**: Private Cloud Sync (WebDAV) and Encrypted Dropbox support.
+- **v3.1.4**: **Sync Polish**: Conflict resolution UI and background sync optimization.
 
 ### 🏆 v3.2 — "The Intelligence Phase"
-5. **On-Device LLM Setup**: Integrate local AI models (Gemma/Llama) for privacy-first AI.
-6. **Smart Summarization**: One-tap AI summaries for long notes.
-7. **Action Item Extraction**: AI automatically identifies and creates tasks from note text.
-8. **Global Search 2.0**: Semantic search (finding notes by "meaning" via local embeddings).
+- **v3.2.1**: **Local AI Core**: On-device LLM setup (Gemma/Llama) and Smart Summarization.
+- **v3.2.2**: **AI Polish**: Model quantization for speed and summarization style options.
+- **v3.2.3**: **Semantic Intelligence**: Action Item extraction and Global Search 2.0 (embeddings).
+- **v3.2.4**: **Search Polish**: Semantic search ranking and interactive action item list.
 
 ### 🎨 v3.3 — "The Visual Phase"
-9. **Freeform Canvas**: An infinite board for visual brainstorming and note layout.
-10. **UI 3.0**: Advanced shared-element transitions and predictive back navigation.
+- **v3.3.1**: **Freeform Board**: Infinite canvas for visual brainstorming and note layout.
+- **v3.3.2**: **Canvas Polish**: Object snapping, grouping, and export to image.
+- **v3.3.3**: **UI 3.0**: Advanced shared-element transitions and predictive back navigation.
+- **v3.3.4**: **UI Polish**: Framerate optimization and haptic feedback refinements.
 
 ---
 

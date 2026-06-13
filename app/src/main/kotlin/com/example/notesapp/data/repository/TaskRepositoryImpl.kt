@@ -40,6 +40,10 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun saveTask(task: Task): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             dao.insertTask(task.toEntity())
+            // Also insert/update subtasks if any
+            task.subtasks.forEach { subtask ->
+                dao.insertSubtask(subtask.toEntity())
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -49,6 +53,12 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun updateTasks(tasks: List<Task>): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             dao.updateTasks(tasks.map { it.toEntity() })
+            // Subtasks update logic could be more complex (syncing), but keeping it simple for now
+            tasks.forEach { task ->
+                task.subtasks.forEach { subtask ->
+                    dao.insertSubtask(subtask.toEntity())
+                }
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

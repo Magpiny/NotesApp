@@ -6,14 +6,19 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskDao {
     // Tasks
+    @Transaction
     @Query("SELECT * FROM tasks ORDER BY position ASC")
-    fun getAllTasks(): Flow<List<TaskEntity>>
+    fun getAllTasks(): Flow<List<TaskWithSubtasks>>
 
+    @Transaction
     @Query("SELECT * FROM tasks WHERE id = :id")
-    suspend fun getTaskById(id: String): TaskEntity?
+    suspend fun getTaskById(id: String): TaskWithSubtasks?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTask(task: TaskEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSubtask(subtask: SubtaskEntity)
 
     @Update
     suspend fun updateTask(task: TaskEntity)
@@ -52,18 +57,20 @@ interface TaskDao {
     """)
     fun getNotesForTask(taskId: String): Flow<List<NoteEntity>>
 
+    @Transaction
     @Query("""
         SELECT tasks.* FROM tasks
         JOIN task_note_cross_ref ON tasks.id = task_note_cross_ref.taskId
         WHERE task_note_cross_ref.noteId = :noteId
     """)
-    fun getTasksForNote(noteId: String): Flow<List<TaskEntity>>
+    fun getTasksForNote(noteId: String): Flow<List<TaskWithSubtasks>>
 
+    @Transaction
     @Query("""
         SELECT * FROM tasks 
         WHERE (title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%')
         AND status != 'CANCELLED'
         ORDER BY updatedAt DESC
     """)
-    fun searchTasks(query: String): Flow<List<TaskEntity>>
+    fun searchTasks(query: String): Flow<List<TaskWithSubtasks>>
 }

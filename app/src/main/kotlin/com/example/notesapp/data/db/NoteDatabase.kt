@@ -12,12 +12,13 @@ import androidx.room.TypeConverters
         NoteEntity::class, 
         NoteFtsEntity::class,
         TaskEntity::class,
+        SubtaskEntity::class,
         ProjectEntity::class,
         FocusSessionEntity::class,
         TaskNoteCrossRef::class,
         AttachmentEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

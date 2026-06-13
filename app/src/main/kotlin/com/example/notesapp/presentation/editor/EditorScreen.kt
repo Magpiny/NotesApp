@@ -1,46 +1,51 @@
 package com.example.notesapp.presentation.editor
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.input.key.*
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.notesapp.R
-import com.example.notesapp.presentation.components.ColorPicker
+import com.example.notesapp.core.MarkdownVisualTransformation
+import com.example.notesapp.core.SoundUtils
 import com.example.notesapp.core.calculateOnColor
 import com.example.notesapp.core.dimensions
 import com.example.notesapp.core.shareNote
-import com.example.notesapp.core.MarkdownVisualTransformation
-import com.example.notesapp.core.SoundUtils
-import com.mikepenz.markdown.m3.Markdown
-import com.mikepenz.markdown.m3.markdownTypography
-import com.mikepenz.markdown.m3.markdownColor
+import com.example.notesapp.domain.model.AttachmentType
 import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.highlightedCodeBlock
 import com.mikepenz.markdown.compose.elements.highlightedCodeFence
-import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
+import com.example.notesapp.presentation.components.ColorPicker
+import com.example.notesapp.presentation.components.WaveformVisualizer
 
 /**
  * Full-screen editor for creating and modifying notes.
@@ -62,7 +67,15 @@ fun EditorScreen(
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { viewModel.addAttachment(it.toString(), com.example.notesapp.domain.model.AttachmentType.IMAGE) }
+        uri?.let { viewModel.addAttachment(it.toString(), AttachmentType.IMAGE) }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.startRecording()
+        }
     }
 
     var contentFieldValue by remember { mutableStateOf(TextFieldValue(state.content)) }
@@ -139,6 +152,25 @@ fun EditorScreen(
                     }
                 },
                 actions = {
+                    if (state.isSpeaking) {
+                        Slider(
+                            value = state.ttsSpeed,
+                            onValueChange = viewModel::onTtsSpeedChange,
+                            valueRange = 0.5f..2.0f,
+                            modifier = Modifier.width(100.dp),
+                            colors = SliderDefaults.colors(
+                                thumbColor = iconTint,
+                                activeTrackColor = iconTint
+                            )
+                        )
+                    }
+                    IconButton(onClick = viewModel::toggleReadAloud) {
+                        Icon(
+                            imageVector = if (state.isSpeaking) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeMute,
+                            contentDescription = "Read Aloud",
+                            tint = iconTint
+                        )
+                    }
                     IconButton(onClick = { isPreviewMode = !isPreviewMode }) {
                         Icon(
                             imageVector = if (isPreviewMode) Icons.Default.Edit else Icons.Default.Visibility,
@@ -218,12 +250,52 @@ fun EditorScreen(
                 contentColor = iconTint,
                 contentPadding = PaddingValues(horizontal = MaterialTheme.dimensions.paddingSmall),
                 actions = {
-                    Text(
-                        text = "${state.wordCount} ${stringResource(R.string.words)} | ${state.charCount} ${stringResource(R.string.chars)}",
-                        style = MaterialTheme.typography.labelSmall,
-
-                        color = iconTint
-                    )
+                    IconButton(
+                        onClick = {
+                            if (state.isRecording) {
+                                viewModel.stopRecording()
+                            } else if (state.isAudioPlaying) {
+                                viewModel.stopPlayback()
+                            } else {
+                                when (PackageManager.PERMISSION_GRANTED) {
+                                    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) -> {
+                                        viewModel.startRecording()
+                                    }
+                                    else -> {
+                                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    }
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                state.isRecording -> Icons.Default.StopCircle
+                                state.isAudioPlaying -> Icons.Default.Stop
+                                else -> Icons.Default.Mic
+                            },
+                            contentDescription = "Audio Action",
+                            tint = if (state.isRecording || state.isAudioPlaying) MaterialTheme.colorScheme.error else iconTint
+                        )
+                    }
+                    
+                    if (state.isRecording || state.isAudioPlaying) {
+                        WaveformVisualizer(
+                            amplitudes = state.recordingWaveform,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(32.dp)
+                                .padding(horizontal = 8.dp),
+                            color = iconTint
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${state.wordCount} ${stringResource(R.string.words)} | ${state.charCount} ${stringResource(R.string.chars)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = iconTint
+                        )
+                    }
                 },
                 floatingActionButton = {
                     ColorPicker(
@@ -253,13 +325,16 @@ fun EditorScreen(
                                 .clip(MaterialTheme.shapes.medium)
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                         ) {
-                            if (attachment.type == com.example.notesapp.domain.model.AttachmentType.IMAGE) {
-                                androidx.compose.foundation.Image(
-                                    painter = androidx.compose.ui.res.painterResource(id = R.mipmap.ic_launcher), // Placeholder for now
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                )
+                            if (attachment.type == AttachmentType.IMAGE) {
+                                // In a real app, use Coils/Glide to load URI. Placeholder for now.
+                                Icon(Icons.Default.Image, null, modifier = Modifier.align(Alignment.Center))
+                            } else if (attachment.type == AttachmentType.AUDIO) {
+                                IconButton(
+                                    onClick = { viewModel.playAudio(attachment) },
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(Icons.Default.PlayCircle, contentDescription = "Play Audio", modifier = Modifier.size(48.dp))
+                                }
                             }
                             IconButton(
                                 onClick = { viewModel.deleteAttachment(attachment) },

@@ -19,6 +19,18 @@ fun TaskEntity.toDomain(): Task = Task(
     labels = if (labels.isBlank()) emptyList() else labels.split(",")
 )
 
+fun SubtaskEntity.toDomain(): Subtask = Subtask(
+    id = id,
+    taskId = taskId,
+    title = title,
+    isCompleted = isCompleted,
+    position = position
+)
+
+fun TaskWithSubtasks.toDomain(): Task = task.toDomain().copy(
+    subtasks = subtasks.map { it.toDomain() }
+)
+
 fun Task.toEntity(): TaskEntity = TaskEntity(
     id = id,
     title = title,
@@ -33,6 +45,14 @@ fun Task.toEntity(): TaskEntity = TaskEntity(
     recurrencePattern = recurrencePattern,
     recurrenceId = recurrenceId,
     labels = labels.joinToString(",")
+)
+
+fun Subtask.toEntity(): SubtaskEntity = SubtaskEntity(
+    id = id,
+    taskId = taskId,
+    title = title,
+    isCompleted = isCompleted,
+    position = position
 )
 
 fun ProjectEntity.toDomain(): Project = Project(

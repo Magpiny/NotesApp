@@ -1,18 +1,21 @@
 package com.example.notesapp.presentation.editor
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.notesapp.core.Constants
+import com.example.notesapp.core.*
 import com.example.notesapp.domain.model.*
 import com.example.notesapp.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import com.example.notesapp.domain.model.Task
 import com.example.notesapp.domain.model.TaskPriority
 import com.example.notesapp.domain.model.TaskStatus
+import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 
@@ -26,7 +29,12 @@ data class EditorUiState(
     val attachments: List<Attachment> = emptyList(),
     val isLoading: Boolean = false,
     val wordCount: Int = 0,
-    val charCount: Int = 0
+    val charCount: Int = 0,
+    val isRecording: Boolean = false,
+    val isSpeaking: Boolean = false,
+    val isAudioPlaying: Boolean = false,
+    val ttsSpeed: Float = 1.0f,
+    val recordingWaveform: List<Float> = emptyList()
 )
 
 sealed interface EditorUiEvent {
@@ -43,6 +51,7 @@ data class EditSession(val title: String, val content: String)
 @HiltViewModel
 class EditorViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    @param:ApplicationContext private val context: Context,
     private val getNoteByIdUseCase: GetNoteByIdUseCase,
     private val saveNoteUseCase: SaveNoteUseCase,
     private val moveNoteToTrashUseCase: MoveNoteToTrashUseCase,
@@ -50,7 +59,10 @@ class EditorViewModel @Inject constructor(
     private val linkTaskToNoteUseCase: LinkTaskToNoteUseCase,
     private val getAttachmentsUseCase: GetAttachmentsUseCase,
     private val saveAttachmentUseCase: SaveAttachmentUseCase,
-    private val deleteAttachmentUseCase: DeleteAttachmentUseCase
+    private val deleteAttachmentUseCase: DeleteAttachmentUseCase,
+    private val audioRecorder: AudioRecorder,
+    private val audioPlayer: AudioPlayer,
+    private val ttsManager: TextToSpeechManager
 ) : ViewModel() {
 
     private val noteId: String? = savedStateHandle["noteId"]
@@ -66,12 +78,26 @@ class EditorViewModel @Inject constructor(
 
     private var lastPushedSession: EditSession? = null
     private var isUndoingRedoing = false
+    private var currentRecordingFile: File? = null
 
     init {
         loadNote()
         setupAutoSave()
         setupUndoRedo()
         loadAttachments()
+        observeAudioPlayback()
+    }
+
+    private fun observeAudioPlayback() {
+        audioPlayer.isPlaying.onEach { isPlaying ->
+            _uiState.update { it.copy(isAudioPlaying = isPlaying) }
+        }.launchIn(viewModelScope)
+
+        audioPlayer.waveform.onEach { waveform ->
+            if (_uiState.value.isAudioPlaying) {
+                _uiState.update { it.copy(recordingWaveform = waveform) }
+            }
+        }.launchIn(viewModelScope)
     }
 
     private fun loadAttachments() {
@@ -202,6 +228,9 @@ class EditorViewModel @Inject constructor(
 
     fun addAttachment(uri: String, type: AttachmentType) {
         viewModelScope.launch {
+            // Ensure the note is saved before adding an attachment due to foreign key constraint
+            saveCurrentNote(_uiState.value)
+
             val attachment = Attachment(
                 id = UUID.randomUUID().toString(),
                 noteId = _uiState.value.id,
@@ -216,6 +245,83 @@ class EditorViewModel @Inject constructor(
     fun deleteAttachment(attachment: Attachment) {
         viewModelScope.launch {
             deleteAttachmentUseCase(attachment)
+        }
+    }
+
+    fun startRecording() {
+        try {
+            val file = File(context.cacheDir, "audio_${UUID.randomUUID()}.m4a")
+            currentRecordingFile = file
+            audioRecorder.start(file)
+            _uiState.update { it.copy(isRecording = true, recordingWaveform = emptyList()) }
+            
+            // Start amplitude tracking
+            viewModelScope.launch {
+                while (_uiState.value.isRecording) {
+                    val amplitude = audioRecorder.getMaxAmplitude()
+                    val normalized = (amplitude.toFloat() / 32767f).coerceIn(0f, 1f)
+                    _uiState.update { 
+                        it.copy(recordingWaveform = it.recordingWaveform + normalized) 
+                    }
+                    kotlinx.coroutines.delay(100)
+                }
+            }
+        } catch (e: Exception) {
+            viewModelScope.launch {
+                _events.emit(EditorUiEvent.ShowSnackbar("Failed to start recording"))
+            }
+        }
+    }
+
+    fun stopRecording() {
+        try {
+            audioRecorder.stop()
+            _uiState.update { it.copy(isRecording = false) }
+            currentRecordingFile?.let { file ->
+                addAttachment(file.absolutePath, AttachmentType.AUDIO)
+            }
+        } catch (e: Exception) {
+            viewModelScope.launch {
+                _events.emit(EditorUiEvent.ShowSnackbar("Failed to stop recording"))
+            }
+        }
+    }
+
+    fun stopPlayback() {
+        audioPlayer.stop()
+    }
+
+    fun playAudio(attachment: Attachment) {
+        val file = File(attachment.localPath)
+        if (file.exists()) {
+            audioPlayer.playFile(file)
+        } else {
+            viewModelScope.launch {
+                _events.emit(EditorUiEvent.ShowSnackbar("Audio file not found"))
+            }
+        }
+    }
+
+    fun toggleReadAloud() {
+        if (_uiState.value.isSpeaking) {
+            ttsManager.stop()
+            _uiState.update { it.copy(isSpeaking = false) }
+        } else {
+            val textToSpeak = "${_uiState.value.title}. ${_uiState.value.content}"
+            if (textToSpeak.isNotBlank()) {
+                ttsManager.speak(textToSpeak, _uiState.value.ttsSpeed)
+                _uiState.update { it.copy(isSpeaking = true) }
+            }
+        }
+    }
+
+    fun onTtsSpeedChange(speed: Float) {
+        _uiState.update { it.copy(ttsSpeed = speed) }
+        val state = _uiState.value
+        if (state.isSpeaking) {
+            // Restart with new speed
+            val textToSpeak = "${state.title}. ${state.content}"
+            ttsManager.speak(textToSpeak, speed)
         }
     }
 
@@ -340,5 +446,11 @@ class EditorViewModel @Inject constructor(
             // TODO: Fix duplicate task creation before re-enabling sync
             // syncInlineTasks(state.content, noteId)
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        ttsManager.shutdown()
+        // audioPlayer.stop() // Removed for background playback
     }
 }
