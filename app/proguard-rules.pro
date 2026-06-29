@@ -1,21 +1,41 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# --- General Android & Project Rules ---
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep line numbers for better crash reports
+-keepattributes SourceFile,LineNumberTable
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- Room Database ---
+# Room uses reflection to find the generated implementation of your @Database class.
+-keep class * extends androidx.room.RoomDatabase
+-keep class * extends androidx.room.Dao
+-keep class * extends androidx.room.Entity
+-keep @androidx.room.Entity class * { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- Hilt / Dagger ---
+# Hilt relies on generated classes and reflection for injection.
+-keep class com.google.dagger.** { *; }
+-keep class dagger.hilt.** { *; }
+-keep class * extends hilt.**
+-keep interface dagger.hilt.** { *; }
+-keep @dagger.hilt.android.lifecycle.HiltViewModel class * { *; }
+
+# --- Kotlin Serialization ---
+# Keep serializable classes and their properties for JSON parsing.
+-keepattributes *Annotation*, EnclosingMethod, InnerClasses
+-keep @kotlinx.serialization.Serializable class * { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.SerialName <fields>;
+}
+
+# --- Coil (Image Loading) ---
+# Coil rules to prevent issues with image decoding.
+-keep class coil3.** { *; }
+-dontwarn coil3.**
+
+# --- Markdown Renderer ---
+# Prevent optimization from breaking the markdown parsing logic.
+-keep class com.mikepenz.markdown.** { *; }
+
+# --- Data Models ---
+# Keep your domain and database entities to prevent mapping errors.
+-keep class com.magpiny.notafo.domain.model.** { *; }
+-keep class com.magpiny.notafo.data.db.** { *; }

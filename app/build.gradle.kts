@@ -9,14 +9,14 @@ plugins {
 }
 
 android {
-    namespace = "com.example.notesapp"
+    namespace = "com.magpiny.notafo"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.notesapp"
+        applicationId = "com.magpiny.notafo"
         minSdk = 33
         targetSdk = 37
-        versionCode = 1
+        versionCode = 2
         versionName = "2.5.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
