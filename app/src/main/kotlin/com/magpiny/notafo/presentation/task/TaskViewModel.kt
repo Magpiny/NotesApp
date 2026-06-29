@@ -1,0 +1,176 @@
+package com.magpiny.notafo.presentation.task
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.magpiny.notafo.core.NLPUtils
+import com.magpiny.notafo.core.SoundUtils
+import com.magpiny.notafo.core.TaskReminderManager
+import com.magpiny.notafo.domain.model.Task
+import com.magpiny.notafo.domain.model.TaskStatus
+import com.magpiny.notafo.domain.usecase.DeleteTaskUseCase
+import com.magpiny.notafo.domain.usecase.GetAllTasksUseCase
+import com.magpiny.notafo.domain.usecase.SaveTaskUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import java.util.UUID
+import javax.inject.Inject
+
+data class TaskUiState(
+    val isLoading: Boolean = false,
+    val tasks: List<Task> = emptyList(),
+    val isKanbanView: Boolean = false,
+    val completionRate: Float = 0f,
+    val completedLast7Days: Int = 0,
+    val error: String? = null
+)
+
+sealed interface TaskUiEvent {
+    data class ShowSnackbar(val message: String) : TaskUiEvent
+}
+
+@HiltViewModel
+class TaskViewModel @Inject constructor(
+    getAllTasksUseCase: GetAllTasksUseCase,
+    private val saveTaskUseCase: SaveTaskUseCase,
+    private val deleteTaskUseCase: DeleteTaskUseCase,
+    private val reminderManager: TaskReminderManager
+) : ViewModel() {
+
+    private val _events = MutableSharedFlow<TaskUiEvent>()
+    val events = _events.asSharedFlow()
+
+    private val _isKanbanView = MutableStateFlow(false)
+
+    val uiState: StateFlow<TaskUiState> = combine(
+        getAllTasksUseCase().onStart { emit(emptyList()) },
+        _isKanbanView
+    ) { tasks, isKanban ->
+        // In List View, we hide COMPLETED tasks to keep it tidy.
+        // In Kanban View, we show them in the "Completed" column.
+        val filteredTasks = if (isKanban) {
+            tasks.filter { it.status != TaskStatus.CANCELLED }
+        } else {
+            tasks.filter { it.status != TaskStatus.COMPLETED && it.status != TaskStatus.CANCELLED }
+        }
+        
+        val total = tasks.count { it.status != TaskStatus.CANCELLED }
+        val completedCount = tasks.count { it.status == TaskStatus.COMPLETED }
+        val rate = if (total > 0) completedCount.toFloat() / total else 0f
+        
+        val sevenDaysAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
+        val last7Days = tasks.count { 
+            it.status == TaskStatus.COMPLETED && it.updatedAt > sevenDaysAgo 
+        }
+
+        TaskUiState(
+            tasks = filteredTasks,
+            isKanbanView = isKanban,
+            completionRate = rate,
+            completedLast7Days = last7Days,
+            isLoading = false
+        )
+    }.flowOn(Dispatchers.Default)
+    .stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = TaskUiState(isLoading = true)
+    )
+
+    fun toggleView() {
+        _isKanbanView.value = !_isKanbanView.value
+    }
+
+    fun toggleTaskCompletion(task: Task) {
+        val newStatus = if (task.status == TaskStatus.COMPLETED) TaskStatus.TODO else TaskStatus.COMPLETED
+        updateTaskStatus(task, newStatus)
+    }
+
+    fun updateTaskStatus(task: Task, newStatus: TaskStatus) {
+        viewModelScope.launch {
+            val updatedTask = task.copy(status = newStatus, updatedAt = System.currentTimeMillis())
+            saveTaskUseCase(updatedTask).onSuccess {
+                if (newStatus == TaskStatus.COMPLETED) {
+                    reminderManager.cancelReminder(task.id)
+                    if (task.recurrencePattern != null) {
+                        handleRecurrence(task)
+                    }
+                } else if (task.dueDate != null) {
+                    reminderManager.scheduleReminder(updatedTask)
+                }
+            }.onFailure {
+                _events.emit(TaskUiEvent.ShowSnackbar("Failed to update task"))
+            }
+        }
+    }
+
+    fun quickAddTask(input: String) {
+        viewModelScope.launch {
+            val result = NLPUtils.parseQuickAdd(input)
+            val task = Task(
+                id = UUID.randomUUID().toString(),
+                title = result.title,
+                description = "",
+                status = TaskStatus.TODO,
+                priority = result.priority,
+                dueDate = result.dueDate,
+                position = 0,
+                projectId = null,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+                labels = result.labels
+            )
+            saveTaskUseCase(task).onSuccess {
+                if (task.dueDate != null) {
+                    reminderManager.scheduleReminder(task)
+                }
+            }.onFailure {
+                _events.emit(TaskUiEvent.ShowSnackbar("Failed to quick add task"))
+            }
+        }
+    }
+
+    private suspend fun handleRecurrence(task: Task) {
+        val pattern = task.recurrencePattern ?: return
+        val currentDueDate = task.dueDate ?: System.currentTimeMillis()
+        
+        val nextDueDate = when (pattern) {
+            "DAILY" -> currentDueDate + 86400000L
+            "WEEKLY" -> currentDueDate + 604800000L
+            "MONTHLY" -> {
+                // Simplified monthly: 30 days
+                currentDueDate + 2592000000L
+            }
+            else -> null
+        } ?: return
+
+        val nextTask = task.copy(
+            id = UUID.randomUUID().toString(),
+            status = TaskStatus.TODO,
+            dueDate = nextDueDate,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+        
+        saveTaskUseCase(nextTask)
+    }
+
+    fun deleteTask(task: Task, context: android.content.Context) {
+        viewModelScope.launch {
+            deleteTaskUseCase(task).onSuccess {
+                SoundUtils.playDeletionSound(context)
+            }.onFailure {
+                _events.emit(TaskUiEvent.ShowSnackbar("Failed to delete task"))
+            }
+        }
+    }
+}

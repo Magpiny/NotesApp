@@ -1,0 +1,252 @@
+package com.magpiny.notafo.presentation.settings
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import com.magpiny.notafo.R
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    onNavigateBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel()
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(text = stringResource(R.string.theme), style = MaterialTheme.typography.titleMedium)
+            
+            ThemeSelector(
+                selectedMode = state.themeMode,
+                onModeSelected = viewModel::setThemeMode
+            )
+
+            HorizontalDivider()
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = stringResource(R.string.dynamic_color), style = MaterialTheme.typography.titleMedium)
+                    Text(text = stringResource(R.string.use_system_accent), style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(
+                    checked = state.dynamicColor,
+                    onCheckedChange = viewModel::setDynamicColor
+                )
+            }
+
+            HorizontalDivider()
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = stringResource(R.string.default_view), style = MaterialTheme.typography.titleMedium)
+                    Text(text = if (state.isGridView) stringResource(R.string.grid_view) else stringResource(R.string.list_view), style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(
+                    checked = state.isGridView,
+                    onCheckedChange = viewModel::setGridView
+                )
+            }
+
+            HorizontalDivider()
+
+            Text(text = stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
+            LanguageSelector(
+                selectedLanguage = state.language,
+                onLanguageSelected = viewModel::setLanguage
+            )
+
+            HorizontalDivider()
+
+            Text(text = "Font Style", style = MaterialTheme.typography.titleMedium)
+            FontSelector(
+                selectedFont = state.fontFamily,
+                onFontSelected = viewModel::setFontFamily
+            )
+
+            HorizontalDivider()
+
+            Text(text = "Focus Timer", style = MaterialTheme.typography.titleMedium)
+            DurationSelector(
+                label = "Focus Duration",
+                minutes = state.focusDuration,
+                options = listOf(15, 20, 25, 30, 45, 60),
+                onDurationSelected = viewModel::setFocusDuration
+            )
+            DurationSelector(
+                label = "Short Break",
+                minutes = state.shortBreakDuration,
+                options = listOf(3, 5, 10, 15),
+                onDurationSelected = viewModel::setShortBreakDuration
+            )
+            DurationSelector(
+                label = "Long Break",
+                minutes = state.longBreakDuration,
+                options = listOf(10, 15, 20, 30),
+                onDurationSelected = viewModel::setLongBreakDuration
+            )
+        }
+    }
+}
+
+@Composable
+fun DurationSelector(
+    label: String,
+    minutes: Int,
+    options: List<Int>,
+    onDurationSelected: (Int) -> Unit
+) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(text = "$label: $minutes min", style = MaterialTheme.typography.bodyMedium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) {
+            options.forEach { opt ->
+                FilterChip(
+                    selected = minutes == opt,
+                    onClick = { onDurationSelected(opt) },
+                    label = { Text(opt.toString()) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FontSelector(
+    selectedFont: String,
+    onFontSelected: (String) -> Unit
+) {
+    val options = listOf("Sans", "Serif", "Mono")
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        options.forEach { font ->
+            val family = when (font) {
+                "Serif" -> FontFamily.Serif
+                "Mono" -> FontFamily.Monospace
+                else -> FontFamily.SansSerif
+            }
+            FilterChip(
+                selected = selectedFont == font,
+                onClick = { onFontSelected(font) },
+                label = { 
+                    Text(
+                        text = font,
+                        fontFamily = family
+                    ) 
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun LanguageSelector(
+    selectedLanguage: String,
+    onLanguageSelected: (String) -> Unit
+) {
+    val options = listOf(
+        "en" to "English",
+        "es" to "Español",
+        "fr" to "Français",
+        "pt" to "Português",
+        "ar" to "العربية",
+        "sw" to "Kiswahili",
+        "ko" to "한국어",
+        "ja" to "日本語",
+        "zh" to "中文"
+    )
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        options.forEach { (code, name) ->
+            FilterChip(
+                selected = selectedLanguage == code,
+                onClick = { onLanguageSelected(code) },
+                label = { Text(name) }
+            )
+        }
+    }
+}
+
+@Composable
+fun ThemeSelector(
+    selectedMode: String,
+    onModeSelected: (String) -> Unit
+) {
+    val options = listOf("System", "Light", "Dark")
+    Column(Modifier.selectableGroup()) {
+        options.forEach { text ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .selectable(
+                        selected = (text == selectedMode),
+                        onClick = { onModeSelected(text) },
+                        role = Role.RadioButton
+                    )
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                RadioButton(
+                    selected = (text == selectedMode),
+                    onClick = null
+                )
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
+        }
+    }
+}
